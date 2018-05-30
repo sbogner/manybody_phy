@@ -15,4 +15,4 @@ jacobi.o: jacobi.cpp
 	${CC} ${CFLAGS} -c jacobi.cpp ${LIB}
 
 clean: 
-	rm run *.o
+	rm run *.o *.dat
