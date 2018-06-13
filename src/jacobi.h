@@ -20,5 +20,6 @@ void get_pivot(mat& A, int N, int& k, int& l);
 void rotate(mat& A, mat& V, int k, int l, int N);
 void jacobi(mat& A, mat& V, int N);
 void print_matrix(mat& A, int N);
+void write_eigs(mat& D, mat& U, double d, double g, string filename);
 
 #endif

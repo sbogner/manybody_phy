@@ -127,4 +127,28 @@ void print_matrix(mat& A, int N){
 	cout << endl;
 }
 
+void write_eigs(mat& D, mat& U, double d, double g, string filename){
 
+
+	ofstream ofile;
+
+	// open file
+	cout << "Writing to '" << filename << "'... " << endl;
+	ofile.open(filename);
+
+	// print eigenvalues and eigenvectors
+	ofile << "# energy spacing d = " << d << endl;
+	ofile << "# interaction strength g = " << g << endl;
+	ofile << "# eigenvalues E_i, eigenvectors (C_0i, C_1i, C_2i, C_3i, C_4i, C_5i)\n" << endl;
+	for(int j = 0; j < 6; ++j){
+
+		ofile << left << setw(15) << setprecision(5) << D(j,j);
+
+		for(int i = 0; i < 6; ++i){
+			ofile << setw(15) << setprecision(5) << U(i,j);
+		}
+		ofile << endl;
+	}
+
+	ofile.close();
+}

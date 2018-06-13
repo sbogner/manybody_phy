@@ -14,11 +14,10 @@ using namespace arma;
 
 const double pi = 4.0*atan(1.0);
 
-double offdiag_sq(mat& A, int N);
-double norm_sq(mat& A, int N);
-void get_pivot(mat& A, int N, int& k, int& l);
-void rotate(mat& A, mat& V, int k, int l, int N);
-void jacobi(mat& A, mat& V, int N);
-void print_matrix(mat& A, int N);
+mat commutator(mat& A, mat& B);
+void split(mat& H, mat& Hd, mat& Hod, int N);
+void srg(mat &H, int N, double smax, double ds);
+void display_matrix(mat& A, int N);
+
 
 #endif
