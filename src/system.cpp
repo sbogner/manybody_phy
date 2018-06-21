@@ -23,14 +23,6 @@ CFermionSystem::CFermionSystem(int particles, int sp_states, double d, double g)
 	g_ = g;
 
 	generate_sp_basis();
-
-	for(int q = 0; q < 8; ++q){
-		for(int r = 0; r < 8; ++r){
-			cout << q << "\t" << r << "\t" << f(q,r) << endl;
-		}
-	}
-
-
 }
 
 void CFermionSystem::generate_sp_basis(){
@@ -83,11 +75,12 @@ double CFermionSystem::v(int q, int r, int s, int t){
 
 }
 
-// this is the same as h^HF
+// fock operator
 double CFermionSystem::f(int q, int r){
 
 	double E = h0(q,r);
 	for(int i = 0; i < F_; ++i) E += v(q,i,r,i);
+
 }
 
 // energy of particle in mb state

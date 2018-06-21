@@ -3,7 +3,8 @@
 
 int main(int argc, char *argv[]){
 
-	CFermionSystem PairingModel(4, 4, 1.0, 0.5);
+	CFermionSystem PairingModel(4, 4, 1.0, 0.3);
+
 
 
 	return 0;

@@ -13,7 +13,6 @@ int main(int argc, char *argv[]){
 		n = atoi(argv[3]);
 	}
 
-	cout << ds << endl;
 
 	double dg = 2.0/n;           // spacing between 'g' values
 	double d = 1.0;              // energy level spacing
