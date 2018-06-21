@@ -20,7 +20,7 @@ public:
 	double d_, g_;
 	
 
-	vector<vector<int>> mb_states_;
+	vector<vector<int>> states_;
 
 	CFermionSystem();
 	CFermionSystem(int particles, int sp_states, double d, double g);

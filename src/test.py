@@ -7,7 +7,7 @@ below_fermi = (0,1,2,3)
 above_fermi = (4,5,6,7)
 states = [(1,1),(1,-1),(2,1),(2,-1),(3,1),(3,-1),(4,1),(4,-1)]
 N = 8
-g = 0.3
+g = 0.26
 
 def h0(p,q):
     if p == q:
@@ -51,8 +51,12 @@ def assym(p,q,r,s):
         return g/2.
 
 for p in range(0,8):
-	for q in range (0,8):
-		print(p,q,f(p,q))
+    for q in range (0,8):
+        for r in range(0,8):
+            for s in range(0,8):
+                x = assym(p,q,r,s)
+                if x != 0.0:
+                    print(p,q,r,s,x)
 
 '''
 def eps(holes, particles):
