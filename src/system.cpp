@@ -24,29 +24,6 @@ CFermionSystem::CFermionSystem(int particles, int sp_states, double d, double g)
 
 	generate_sp_basis();
 
-	/*
-	for(int q = 0; q < N_; ++q){
-		for(int r = 0; r < N_; ++r){
-			cout << q << "\t" << r << "\t" << h0(q,r) << endl;
-		}
-	}
-	*/
-
-	for(int q = 0; q < 8; ++q){
-		for(int r = 0; r < 8; ++r){
-			for(int s = 0; s < 8; ++s){
-				for(int t = 0; t < 8; ++t){
-
-					if(v(q,r,s,t) != 0){
-						cout << q << "\t" <<r << "\t" <<s << "\t" <<t <<"\t"<< v(q,r,s,t) << endl;
-					}
-					
-				}
-			}
-		}
-	}
-	
-	
 }
 
 void CFermionSystem::generate_sp_basis(){
@@ -68,6 +45,7 @@ void CFermionSystem::generate_sp_basis(){
 	}
 
 }
+
 
 double CFermionSystem::h0(int q, int r){
 
@@ -106,10 +84,10 @@ double CFermionSystem::f(int q, int r){
 
 	double E = h0(q,r);
 	for(int i = 0; i < F_; ++i) E += v(q,i,r,i);
-
+	return E;
 }
 
-// energy of particle in mb state
+// redefined single-particle energies in HF basis (8.43)
 double CFermionSystem::eps(int q, int r){
 
 	if(q == r){
@@ -124,11 +102,18 @@ double CFermionSystem::eps(vector<int>& holes, vector<int>& parts){
 
 	double E = 0.0;
 
-	for(int i = 0; i < holes.size(); ++i) E += eps(holes[i],holes[i]);
-	for(int a = 0; a < parts.size(); ++a) E -= eps(parts[a],parts[a]);
+	for(int i = 0; i < holes.size(); ++i) E += f(holes[i],holes[i]);
+	for(int a = 0; a < parts.size(); ++a) E -= f(parts[a],parts[a]);
 
 	return E;
 }
 
+int CFermionSystem::binom_coeff(int n, int k){
 
+	int nCk = n;
+	for(int i = 2; i < n; ++i) nCk = nCk*i;
+	for(int i = 1; i <= k; ++i) nCk = nCk/i;
+	for(int i = 1; i <= n-k; ++i) nCk = nCk/i;
 
+	return nCk;
+}

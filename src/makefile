@@ -3,13 +3,13 @@ CFLAGS = -std=c++11
 LIB = -larmadillo
 
 
-all: SRG MBPT2 TEST
+all: RUN TEST
 
 SRG: pairing_model.o srg.o
 	${CC} ${CFLAGS} pairing_model.o srg.o -o SRG ${LIB}
 
-MBPT2: main.o system.o
-	${CC} ${CFLAGS} main.o system.o -o MBPT2
+RUN: main.o system.o solver.o srg.o
+	${CC} ${CFLAGS} main.o system.o solver.o srg.o -o RUN ${LIB}
 
 TEST: test_main.o unit_tests.o system.o
 	${CC} ${CFLAGS} test_main.o unit_tests.o system.o -o TEST 
@@ -22,6 +22,9 @@ pairing_model.o: pairing_model.cpp
 
 srg.o: srg.cpp
 	${CC} ${CFLAGS} -c srg.cpp ${LIB}
+
+solver.o: solver.cpp
+	${CC} ${CFLAGS} -c solver.cpp
 
 jacobi.o: jacobi.cpp
 	${CC} ${CFLAGS} -c jacobi.cpp ${LIB}
@@ -36,5 +39,6 @@ unit_tests.o: unit_tests.cpp
 	${CC} ${CFLAGS} -c unit_tests.cpp
 
 clean: 
-	rm SRG MBPT2 TEST
-	rm *.o *.dat
+	rm *.o
+	rm SRG RUN TEST
+	

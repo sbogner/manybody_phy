@@ -13,6 +13,10 @@ using namespace std;
 
 class CFermionSystem{
 
+private:
+
+	int binom_coeff(int n, int k);
+
 public:
 
 	int N_, F_;
@@ -21,12 +25,14 @@ public:
 	
 
 	vector<vector<int>> states_;
+	vector<vector<double>> H_;
 
 	CFermionSystem();
 	CFermionSystem(int particles, int sp_states, double d, double g);
 	~CFermionSystem(){}
 
 	void generate_sp_basis();
+	void generate_H();
 
 	double h0(int q, int r);
 	double v(int q, int r, int s, int t);

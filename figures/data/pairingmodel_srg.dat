@@ -1,4 +1,4 @@
-d = 1
+# d = 1
 # g, Ecorr from diagonalization using SRG
 -0.995	-0.220034
 -0.985	-0.216194

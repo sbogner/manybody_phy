@@ -13,15 +13,14 @@ CSolver::CSolver(int particles, int sp_states, double d, double gmin, double gma
 }
 
 
-void CSolver::mbpt2(){
+void CSolver::MBPT2(){
 
 	ofstream outfile;
 	outfile.open(filename_+"_mbpt2.dat");
 	outfile << "# d = " << d_ << endl;
+	outfile << "# g, Ecorr from MBPT2, analytical Ecorr (pg. 365)" << endl;
 
-	for(double g = gmin_; g <= gmax_; g += gstep_){
-
-		cout << "g = " << g << endl;
+	for(double g = gmin_+0.5*gstep_; g < gmax_; g += gstep_){
 
 		CFermionSystem system(particles_, sp_states_, d_, g);
 
@@ -37,13 +36,47 @@ void CSolver::mbpt2(){
 				}
 			}
 		}
+		Ecorr = 0.25*Ecorr;
 
-		double exact = -0.25*g*g*(2/(4+g)+1/(6+g)+1/(2+g));
-		outfile << g << "\t" << Ecorr << "\t" << exact << endl;
+		// analytical solution (pg. 365)
+		double soln = -0.25*g*g*(2/(4+g)+1/(6+g)+1/(2+g));
+		outfile << g << "\t" << Ecorr << "\t" << soln << endl;
 	}
 
 	outfile.close();
+}
 
+void CSolver::SRG(){
 
+	ofstream outfile;
+	outfile.open(filename_+"_srg.dat");
+	outfile << "# d = " << d_ << endl;
+	outfile << "# g, Ecorr from diagonalization using SRG" << endl;
+
+		for(double g = gmin_+0.5*gstep_; g < gmax_; g += gstep_){
+
+		CFermionSystem system(particles_, sp_states_, d_, g);
+		
+		// set up Hamiltonian
+		mat H = zeros<mat>(6,6);
+		for(int i = 0; i < 6; ++i){
+			for(int j = 0; j < 6; ++j){
+				if(i+j != 5) H(i,j) = -0.5*g; 
+			}
+		}
+		H(0,0) = 2*d_-g;
+		H(1,1) = 4*d_-g;
+		H(2,2) = 6*d_-g;
+		H(3,3) = 6*d_-g;
+		H(4,4) = 8*d_-g;
+		H(5,5) = 10*d_-g;
+
+		srg(H, 6, 10, 0.001);
+
+		outfile << g << "\t" << H(0,0)-2.0+g << endl;
+
+	}
+
+	outfile.close();
 
 }

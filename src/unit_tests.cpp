@@ -46,14 +46,12 @@ TEST_CASE("KINETIC ENERGY"){
 
 TEST_CASE("POTENTIAL ENERGY"){
 
-	CFermionSystem PairingModel(4, 4, 1.0, 0.5);
+	CFermionSystem PairingModel(4, 4, 1.0, 0.26);
 
-	REQUIRE(PairingModel.h0(0,0) == 0);
-	REQUIRE(PairingModel.h0(1,1) == 0);
-	REQUIRE(PairingModel.h0(2,2) == 1);
-	REQUIRE(PairingModel.h0(3,3) == 1);
-	REQUIRE(PairingModel.h0(4,4) == 2);
-	REQUIRE(PairingModel.h0(5,5) == 2);
-	REQUIRE(PairingModel.h0(6,6) == 3);
-	REQUIRE(PairingModel.h0(7,7) == 3);
+	for(int q = 0; q < 8; ++q){
+		for(int r = 0; r < 8; ++r){
+			cout << q << "\t" << r << "\t" << PairingModel.f(q,r) << endl;
+		}
+	}
+	
 }

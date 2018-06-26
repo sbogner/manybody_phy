@@ -17,7 +17,7 @@ void split(mat& H, mat& Hd, mat& Hod, int N){
 	}
 }
 
-void srg(mat &H, int N, double smax, double ds){
+void srg(mat& H, int N, double smax, double ds){
 
 	for(double s = 0.0; s <= smax; s += ds){
 
@@ -39,7 +39,7 @@ void srg(mat &H, int N, double smax, double ds){
 	}
 
 	// print
-	display_matrix(H, 6);
+	//display_matrix(H, N);
 
 }
 
