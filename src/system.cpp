@@ -43,9 +43,7 @@ void CFermionSystem::generate_sp_basis(){
 		else states_[i][1] = -1;
 
 	}
-
 }
-
 
 double CFermionSystem::h0(int q, int r){
 
@@ -106,14 +104,4 @@ double CFermionSystem::eps(vector<int>& holes, vector<int>& parts){
 	for(int a = 0; a < parts.size(); ++a) E -= f(parts[a],parts[a]);
 
 	return E;
-}
-
-int CFermionSystem::binom_coeff(int n, int k){
-
-	int nCk = n;
-	for(int i = 2; i < n; ++i) nCk = nCk*i;
-	for(int i = 1; i <= k; ++i) nCk = nCk/i;
-	for(int i = 1; i <= n-k; ++i) nCk = nCk/i;
-
-	return nCk;
 }

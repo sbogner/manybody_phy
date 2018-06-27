@@ -51,7 +51,7 @@ void CSolver::SRG(){
 	ofstream outfile;
 	outfile.open(filename_+"_srg.dat");
 	outfile << "# d = " << d_ << endl;
-	outfile << "# g, Ecorr from diagonalization using SRG" << endl;
+	outfile << "# g, Ecorr from diagonalization using SRG, six eigenvalues of H" << endl;
 
 		for(double g = gmin_+0.5*gstep_; g < gmax_; g += gstep_){
 
@@ -73,8 +73,10 @@ void CSolver::SRG(){
 
 		srg(H, 6, 10, 0.001);
 
-		outfile << g << "\t" << H(0,0)-2.0+g << endl;
-
+		outfile << g << "\t" << H(0,0)-2.0+g << "\t";
+		outfile << H(0,0) << "\t" << H(1,1) << "\t";
+		outfile << H(2,2) << "\t" << H(3,3) << "\t";
+		outfile << H(4,4) << "\t" << H(5,5) << endl;
 	}
 
 	outfile.close();

@@ -13,10 +13,6 @@ using namespace std;
 
 class CFermionSystem{
 
-private:
-
-	int binom_coeff(int n, int k);
-
 public:
 
 	int N_, F_;

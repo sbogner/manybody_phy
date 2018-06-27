@@ -1,5 +1,6 @@
 #include "catch.hpp"
-#include "system.h"
+#include "../system.h"
+#include <random>
 
 TEST_CASE("STATES"){
 
@@ -44,14 +45,20 @@ TEST_CASE("KINETIC ENERGY"){
 	REQUIRE(PairingModel.h0(7,7) == 3);
 }
 
-TEST_CASE("POTENTIAL ENERGY"){
+TEST_CASE("FOCK ENERGY"){
 
-	CFermionSystem PairingModel(4, 4, 1.0, 0.26);
+	mt19937 generator;
+	uniform_real_distribution<double> rand01(0.0,1.0);
+	double g = rand01(generator);
 
-	for(int q = 0; q < 8; ++q){
-		for(int r = 0; r < 8; ++r){
-			cout << q << "\t" << r << "\t" << PairingModel.f(q,r) << endl;
-		}
-	}
-	
+	CFermionSystem PairingModel(4, 4, 1.0, g);
+
+	REQUIRE(PairingModel.f(0,0) == -0.5*g);
+	REQUIRE(PairingModel.f(1,1) == -0.5*g);
+	REQUIRE(PairingModel.f(2,2) == 1.0-0.5*g);
+	REQUIRE(PairingModel.f(3,3) == 1.0-0.5*g);
+	REQUIRE(PairingModel.f(4,4) == 2.0);
+	REQUIRE(PairingModel.f(5,5) == 2.0);
+	REQUIRE(PairingModel.f(6,6) == 3.0);
+	REQUIRE(PairingModel.f(7,7) == 3.0);
 }
