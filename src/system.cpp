@@ -10,7 +10,7 @@ CFermionSystem::CFermionSystem(){
 	d_ = 1.0;
 	g_ = 0.5;
 
-	generate_sp_basis();
+	generate_basis();
 }
 
 CFermionSystem::CFermionSystem(int particles, int sp_states, double d, double g){
@@ -22,11 +22,11 @@ CFermionSystem::CFermionSystem(int particles, int sp_states, double d, double g)
 	d_ = d;
 	g_ = g;
 
-	generate_sp_basis();
+	generate_basis();
 
 }
 
-void CFermionSystem::generate_sp_basis(){
+void CFermionSystem::generate_basis(){
 
 	states_.resize(N_);
 

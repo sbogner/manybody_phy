@@ -8,8 +8,9 @@ matplotlib.rcParams['font.family'] = "serif"
 from matplotlib import ticker
 from matplotlib.ticker import ScalarFormatter
 
+file = np.loadtxt("data/pairingmodel_srg.dat", unpack=True)
+
 g = np.linspace(-1.0, 1.0, num=11)
-files = ['data/eigs'+str(i)+'.dat' for i in range(0,11)]
 colors = ['indianred','orange', 'yellowgreen', 'seagreen', 'dodgerblue', 'blueviolet']
 
 plt.figure(figsize=(6,6))
@@ -18,13 +19,13 @@ axes = plt.gca()
 axes.set_xlim([-1,1])
 axes.tick_params(labelsize=12)
 
-for i in range(0,11):
-	file = np.loadtxt(files[i], unpack=True)
-	for j in range(0,6):
-		plt.plot(g[i], file[0][j], linewidth=5, marker='o', color=colors[j], alpha=0.6)
+
+for i in range(0,6):
+	plt.plot(file[0],file[i+2],linewidth=3,color=colors[i],alpha=0.7)
+
 
 plt.xlabel(r'Interaction Strength $g$', fontsize=12, weight='normal', family='serif')
-plt.ylabel(r'Eigenvalues', fontsize=12, weight='normal', family='serif')
+plt.ylabel(r'Eigenvalues of $H$', fontsize=12, weight='normal', family='serif')
 plt.title(r'Eigenvalues for Energy Spacing $d=1$ and Various $g$', fontsize=12, weight='normal', family='serif')
 plt.grid()
 plt.tight_layout()

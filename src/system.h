@@ -16,7 +16,7 @@ class CFermionSystem{
 public:
 
 	int N_, F_;
-	int particles_, sp_states_;
+	int particles_, sp_states_; // degenerate sp states
 	double d_, g_;
 	
 
@@ -27,8 +27,7 @@ public:
 	CFermionSystem(int particles, int sp_states, double d, double g);
 	~CFermionSystem(){}
 
-	void generate_sp_basis();
-	void generate_H();
+	void generate_basis();
 
 	double h0(int q, int r);
 	double v(int q, int r, int s, int t);
