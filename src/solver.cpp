@@ -58,20 +58,20 @@ void CSolver::SRG(){
 		CFermionSystem system(particles_, sp_states_, d_, g);
 		
 		// set up Hamiltonian
-		mat H = zeros<mat>(6,6);
+		mat H0 = zeros<mat>(6,6);
 		for(int i = 0; i < 6; ++i){
 			for(int j = 0; j < 6; ++j){
-				if(i+j != 5) H(i,j) = -0.5*g; 
+				if(i+j != 5) H0(i,j) = -0.5*g; 
 			}
 		}
-		H(0,0) = 2*d_-g;
-		H(1,1) = 4*d_-g;
-		H(2,2) = 6*d_-g;
-		H(3,3) = 6*d_-g;
-		H(4,4) = 8*d_-g;
-		H(5,5) = 10*d_-g;
+		H0(0,0) = 2*d_-g;
+		H0(1,1) = 4*d_-g;
+		H0(2,2) = 6*d_-g;
+		H0(3,3) = 6*d_-g;
+		H0(4,4) = 8*d_-g;
+		H0(5,5) = 10*d_-g;
 
-		srg(H, 6, 10, 0.001);
+		mat H = srg(H0, 6, 10, 0.001);
 
 		outfile << g << "\t" << H(0,0)-2.0+g << "\t";
 		outfile << H(0,0) << "\t" << H(1,1) << "\t";

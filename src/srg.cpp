@@ -11,11 +11,15 @@ using namespace arma;
 
 
 
-static const int Bmax = 22;
+static const int Bmax = 32;
 static const vec B = {1.0, -1/2.0, 1/6.0, 0.0, -1/30.0, 
-	                  0.0, 1/42.0, 0.0, -1/30.0, 0.0, 5/66.0, 
-	                  0.0, -691/2730.0, 0.0, 7/6.0, 0.0, -3617/510.0, 
-	                  0.0, 43867/798.0, 0.0, -174611/330, 0.0};
+	                  0.0, 1/42.0, 0.0, -1/30.0, 0.0, 
+	                  5/66.0, 0.0, -691/2730.0, 0.0, 7/6.0, 
+	                  0.0, -3617/510.0, 0.0, 43867/798.0, 0.0, 
+	                  -174611/330, 0.0, 854513/138.0, 0.0, -236364091/2730.0, 
+	                  0.0, 8553103/6.0, 0.0, -23749461029/870, 0.0,
+	                  8615841276005/14322, 0.0};
+
 
 // displays NxN matrix
 void display(mat& A, int N){
@@ -32,13 +36,10 @@ void display(mat& A, int N){
 
 int factorial(int n){
 
-	int factorial = 1;
-
 	if(n > 1){
-		for(int i = 2; i <= n; ++i) factorial *= i;
+		return n*factorial(n-1);
 	}
-	
-	return factorial;
+	else return 1;
 }
 
 mat commutator(mat A, mat B){
@@ -56,28 +57,28 @@ mat nested_commutator(mat A, mat B, int n){
 	}
 }
 
-// returns A after solving dA/ds=derivative(A(s),s)
-// later add display statements for various s
-mat RK4(mat A0, int N, double smax, double ds, mat (*derivative)(mat,mat)){
+// returns A(smax) after solving dA/ds = derivative
+// if A = H, B0 is a dummy 
+// if A = Omega, B0 is H0 
+mat RK4(mat A0, mat B0, int N, double smax, double ds, mat (*derivative)(mat,mat)){
 
 	mat k1, k2, k3, k4;
 
-	// this is a dummy variable if srg_derivative() is used
-	mat Omega  = zeros<mat>(N,N);
-
 	// algorithm
-	mat Atemp = A0;
+	mat A = A0, B = B0;
+
 	for(double s = 0; s <= smax; s += ds){
 
-		k1 = ds*(*derivative)(Atemp,Omega);
-		k2 = ds*(*derivative)(Atemp+0.5*k1,Omega);
-		k3 = ds*(*derivative)(Atemp+0.5*k2,Omega);
-		k4 = ds*(*derivative)(Atemp+k3,Omega);
+		k1 = ds*(*derivative)(A,B);
+		k2 = ds*(*derivative)(A+0.5*k1,B);
+		k3 = ds*(*derivative)(A+0.5*k2,B);
+		k4 = ds*(*derivative)(A+k3,B);
 
-		Atemp += (k1+2.0*k2+2.0*k3+k4)/6.0;
+		A += (k1+2.0*k2+2.0*k3+k4)/6.0;
+		B = expmat(A)*B0*expmat(-A);
 	}
 
-	return Atemp;
+	return A;
 }
 
 // generator
@@ -92,40 +93,41 @@ mat get_eta(mat H){
 }
 
 // dH/ds 
-// need dummy to pass function as argument in RK4
-mat srg_derivative(mat H, mat dummy){
+mat get_dH(mat H, mat dummy){
 
 	return commutator(get_eta(H),H);
 }
 
-mat srg(mat& H0, int N, double smax, double ds){
-
-	return RK4(H0, N, smax, ds, srg_derivative);
-
-}
-
 // dOmega/ds
-mat magnus_derivative(mat H, mat Omega){
+mat get_dOmega(mat Omega, mat H){
 
 	double tolerance = 1.0E-5;
 	mat eta = get_eta(H);
 
 	// only one non-zero Bernoulli number
-	mat sum = B[1]*nested_commutator(Omega,eta,1);
+	mat sum = 0.5*nested_commutator(Omega,eta,1);
 
 	// add for all even k
 	for(int k = 0; k < Bmax; k += 2){
-		sum = B[k]*nested_commutator(Omega,eta,k)/factorial(k);
+		sum += B[k]*nested_commutator(Omega,eta,k)/factorial(k);
 	}
 
 	return sum;
 
 }
 
+mat srg(mat& H0, int N, double smax, double ds){
+
+	mat dummy = zeros<mat>(6,6);
+	return RK4(H0, dummy, N, smax, ds, get_dH);
+
+}
+
 mat magnus(mat& H0, int N, double smax, double ds){
 
-	return RK4(H0, N, smax, ds, magnus_derivative);
-
+	mat Omega0 = zeros<mat>(6,6);
+	mat Omega = RK4(Omega0, H0, N, smax, ds, get_dOmega);
+	return expmat(Omega)*H0*expmat(-Omega);
 }
 
 
@@ -154,12 +156,10 @@ int main(int argc, char *argv[]){
 	display(H0, 6);	
 
 	mat H = srg(H0, 6, smax, ds);
-
 	cout << "\nDiagonalized Hamiltonian (SRG)\n" << endl;
 	display(H, 6);
 
 	H = magnus(H0, 6, smax, ds);
-
 	cout << "\nDiagonalized Hamiltonian (SRG w/ Magnus Expansion)\n" << endl;
 	display(H, 6);
 
