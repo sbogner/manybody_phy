@@ -16,8 +16,8 @@ axes.set_xlim([-1,1])
 axes.set_ylim([-0.5,0.05])
 axes.tick_params(labelsize=12)
 
-mbpt2 = np.loadtxt("data/pairingmodel_mbpt2.dat",unpack=True)
-srg = np.loadtxt("data/pairingmodel_srg.dat",unpack=True)
+mbpt2 = np.loadtxt("data/Ecorr_pairing_mbpt2.dat",unpack=True)
+srg = np.loadtxt("data/Ecorr_pairing_srg.dat",unpack=True)
 
 plt.plot(srg[0], srg[1], color='darkcyan', linewidth=2, label="Exact")
 plt.plot(mbpt2[0], mbpt2[1], color='indianred', linewidth=2, label="MBPT2")

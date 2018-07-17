@@ -1,3 +1,6 @@
+#ifndef SRG_H
+#define SRG_H
+
 #include <iostream>
 #include <cmath>
 #include <string> 
@@ -9,13 +12,41 @@
 using namespace std;
 using namespace arma;
 
+class CSRG{
 
+public:
 
-static const int Bmax = 32;
-static const vec B = {1.0, -1/2.0, 1/6.0, 0.0, -1/30.0, 
-	                  0.0, 1/42.0, 0.0, -1/30.0, 0.0, 
-	                  5/66.0, 0.0, -691/2730.0, 0.0, 7/6.0, 
-	                  0.0, -3617/510.0, 0.0, 43867/798.0, 0.0, 
-	                  -174611/330, 0.0, 854513/138.0, 0.0, -236364091/2730.0, 
-	                  0.0, 8553103/6.0, 0.0, -23749461029/870, 0.0,
-	                  8615841276005/14322, 0.0};
+	CSRG(mat H0, int N, int Bmax, double smax, double ds);
+	~CSRG(){}
+
+	int N_, Bmax_;
+	double smax_, ds_;
+	vec prefactor_;
+	mat H0_, H_, eta_, Omega_;
+
+	double factorial(int n);
+	double binomial_coeff(int n, int k);
+	double offdiag_H();
+	double frobenius_norm(mat A);
+
+	void get_prefactors();
+	void display_H();
+
+	mat commutator(mat A, mat B);
+	mat nested_commutator(mat A, mat B, int n);
+
+	void get_eta();
+	mat dH_ds();
+	mat dOmega_ds();
+
+	void RK4_srg();
+	void RK4_magnus();
+
+	void srg(vec snapshots, string filename);
+	void magnus(vec snapshots, string filename);
+
+	mat srg();
+	mat magnus();
+};
+
+#endif

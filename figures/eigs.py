@@ -8,7 +8,7 @@ matplotlib.rcParams['font.family'] = "serif"
 from matplotlib import ticker
 from matplotlib.ticker import ScalarFormatter
 
-file = np.loadtxt("data/pairingmodel_srg.dat", unpack=True)
+file = np.loadtxt("data/Ecorr_pairing_srg.dat", unpack=True)
 
 g = np.linspace(-1.0, 1.0, num=11)
 colors = ['indianred','orange', 'yellowgreen', 'seagreen', 'dodgerblue', 'blueviolet']

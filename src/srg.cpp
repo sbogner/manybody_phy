@@ -1,53 +1,98 @@
-#include <iostream>
-#include <cmath>
-#include <string> 
-#include <fstream>
-#include <iomanip>
-#include <armadillo>
-#include "time.h"
+#include "srg.h"
 
 using namespace std;
 using namespace arma;
 
+CSRG::CSRG(mat H0, int N, int Bmax, double smax, double ds){
 
+	H0_ = H0;
+	N_ = N;
+	Bmax_ = Bmax;
+	smax_ = smax;
+	ds_ = ds;
+	get_prefactors();
+}
 
-static const int Bmax = 32;
-static const vec B = {1.0, -1/2.0, 1/6.0, 0.0, -1/30.0, 
-	                  0.0, 1/42.0, 0.0, -1/30.0, 0.0, 
-	                  5/66.0, 0.0, -691/2730.0, 0.0, 7/6.0, 
-	                  0.0, -3617/510.0, 0.0, 43867/798.0, 0.0, 
-	                  -174611/330, 0.0, 854513/138.0, 0.0, -236364091/2730.0, 
-	                  0.0, 8553103/6.0, 0.0, -23749461029/870, 0.0,
-	                  8615841276005/14322, 0.0};
+double CSRG::factorial(int n){
 
+	if(n > 0){
+		double logfactorial = 0.0;
+		for(int i = 1; i <= n; ++i) logfactorial += log((double) i);
+		return exp(logfactorial);
+	}
+	else return 1.0;
+}
 
-// displays NxN matrix
-void display(mat& A, int N){
-	
-	for(int i = 0; i < N; i++){
+double CSRG::binomial_coeff(int n, int k){
+
+	return factorial(n)/(factorial(k)*factorial(n-k));
+}
+
+double CSRG::offdiag_H(){
+
+	double sum = 0.0;
+
+	// sum of squares of elements above main diagonal
+	for(int i = 0; i < N_; ++i){
+		for(int j = i+1; j < N_; ++j){
+			sum += H_(i,j)*H_(i,j);
+		}
+	}
+
+	// double sum and take square root
+	return sqrt(2.0*sum);
+}
+
+double CSRG::frobenius_norm(mat A){
+
+	double sum = 0.0;
+
+	for(int i = 0; i < N_; ++i){
+		for(int j = 0; j < N_; ++j){
+			sum += H_(i,j)*H_(i,j);
+		}
+	}
+
+	return sqrt(sum);
+}
+
+void CSRG::get_prefactors(){
+
+	prefactor_.set_size(Bmax_);
+	vec B(Bmax_);
+	B(0) = 1.0;
+
+	// set all odd Bernoulli numbers
+	B(1) = -0.5; for(int n = 3; n < Bmax_; ++n) B(n) = 0.0;
+
+	// use recursive relation to calculate even Bernoulli numbers
+	for(int n = 2; n < Bmax_; n += 2){
+		B(n) = 0.0;
+		for(int k = 0; k < n; ++k) B(n) -= binomial_coeff(n+1,k)*B(k)/(n+1);
+	}
+
+	// calculate prefactors
+	for(int n = 0; n < Bmax_; ++n) prefactor_(n) = B(n)/factorial(n);
+}
+
+void CSRG::display_H(){
+
+	for(int i = 0; i < N_; i++){
 		cout << "[";
-		for(int j = 0; j < N; j++){
-			cout << setw(10) << setprecision(3) << A(i,j);
+		for(int j = 0; j < N_; j++){
+			cout << setw(10) << setprecision(3) << H_(i,j);
 		}
 		cout << "]" << endl;
 	}
 	cout << endl;	
 }
 
-int factorial(int n){
-
-	if(n > 1){
-		return n*factorial(n-1);
-	}
-	else return 1;
-}
-
-mat commutator(mat A, mat B){
+mat CSRG::commutator(mat A, mat B){
 	
 	return A*B-B*A;
 }
 
-mat nested_commutator(mat A, mat B, int n){
+mat CSRG::nested_commutator(mat A, mat B, int n){
 
 	if(n == 0) return B;
 	else{
@@ -57,111 +102,164 @@ mat nested_commutator(mat A, mat B, int n){
 	}
 }
 
-// returns A(smax) after solving dA/ds = derivative
-// if A = H, B0 is a dummy 
-// if A = Omega, B0 is H0 
-mat RK4(mat A0, mat B0, int N, double smax, double ds, mat (*derivative)(mat,mat)){
-
-	mat k1, k2, k3, k4;
-
-	// algorithm
-	mat A = A0, B = B0;
-
-	for(double s = 0; s <= smax; s += ds){
-
-		k1 = ds*(*derivative)(A,B);
-		k2 = ds*(*derivative)(A+0.5*k1,B);
-		k3 = ds*(*derivative)(A+0.5*k2,B);
-		k4 = ds*(*derivative)(A+k3,B);
-
-		A += (k1+2.0*k2+2.0*k3+k4)/6.0;
-		B = expmat(A)*B0*expmat(-A);
-	}
-
-	return A;
-}
-
-// generator
-mat get_eta(mat H){
+void CSRG::get_eta(){
 
 	// split H into diag and off-diag parts
-	mat Hd = diagmat(H);
-	mat Hod = H-Hd;
-
-	// calculate generator
-	return commutator(Hd,Hod);	
+	mat Hd = diagmat(H_);
+	mat Hod = H_-Hd;
+	eta_ = commutator(Hd,Hod);		
 }
 
-// dH/ds 
-mat get_dH(mat H, mat dummy){
+mat CSRG::dH_ds(){
 
-	return commutator(get_eta(H),H);
+	get_eta();
+	return commutator(eta_,H_);
 }
 
-// dOmega/ds
-mat get_dOmega(mat Omega, mat H){
+mat CSRG::dOmega_ds(){
 
-	double tolerance = 1.0E-5;
-	mat eta = get_eta(H);
+	int n = 0;
+	get_eta();
 
-	// only one non-zero Bernoulli number
-	mat sum = 0.5*nested_commutator(Omega,eta,1);
+	// only one non-zero odd Bernoulli number
+	mat summand, sum = 0.5*nested_commutator(Omega_,eta_,1);
 
-	// add for all even k
-	for(int k = 0; k < Bmax; k += 2){
-		sum += B[k]*nested_commutator(Omega,eta,k)/factorial(k);
-	}
+	// even 
+	do{
+		summand = prefactor_(n)*nested_commutator(Omega_,eta_,n);
+		sum += summand;
+		n += 2;
+	}while((n < Bmax_));
 
 	return sum;
-
 }
 
-mat srg(mat& H0, int N, double smax, double ds){
+void CSRG::RK4_srg(){
 
-	mat dummy = zeros<mat>(6,6);
-	return RK4(H0, dummy, N, smax, ds, get_dH);
+	mat k1, k2, k3, k4, H;
 
+	// store current H
+	H = H_;
+
+	// RK4 algorithm
+	k1 = ds_*dH_ds(); 
+
+	H_ = H+0.5*k1; 
+	k2 = ds_*dH_ds(); 
+
+	H_ = H+0.5*k2; 
+	k3 = ds_*dH_ds();
+
+	H_ = H+k3;
+	k4 = ds_*dH_ds();
+
+	H_ = H+(k1+2.0*k2+2.0*k3+k4)/6.0;
 }
 
-mat magnus(mat& H0, int N, double smax, double ds){
+void CSRG::RK4_magnus(){
 
-	mat Omega0 = zeros<mat>(6,6);
-	mat Omega = RK4(Omega0, H0, N, smax, ds, get_dOmega);
-	return expmat(Omega)*H0*expmat(-Omega);
+	mat k1, k2, k3, k4, H, Omega;
+
+	// store current H and Omega
+	H = H_;
+	Omega = Omega_;
+
+	// RK4 algorithm
+	k1 = ds_*dOmega_ds(); 
+
+	Omega_ = Omega+0.5*k1; 
+	k2 = ds_*dOmega_ds();  
+
+	Omega_ = Omega+0.5*k2; 
+	k3 = ds_*dOmega_ds(); 
+
+	Omega_ = Omega+k3;
+	k4 = ds_*dOmega_ds(); 
+
+	Omega_ = Omega+(k1+2.0*k2+2.0*k3+k4)/6.0;
+	H_ = expmat(Omega_)*H0_*expmat(-Omega_);
 }
 
+void CSRG::srg(vec snapshots, string filename){
 
-int main(int argc, char *argv[]){
+	int k = 0;
+	H_ = H0_;
 
-	double d = 1;
-	double g = atof(argv[1]);
-	double smax = atof(argv[2]);
-	double ds = atof(argv[3]);
+	// open file
+	ofstream outfile;
+	outfile.open(filename);
+	outfile << "# dimension of H = " << N_ << endl;
+	outfile << "# flow parameter s, norm of off-diagonal elements of H, vectorized elements of H (N*N elements)" << endl;
 
-	// set up Hamiltonian
-	mat H0 = zeros<mat>(6,6);
-	for(int i = 0; i < 6; ++i){
-		for(int j = 0; j < 6; ++j){
-			if(i+j != 5) H0(i,j) = -0.5*g; 
+	for(double s = 0; s <= smax_; s += ds_){
+
+		RK4_srg();
+
+		// write snapshots to file
+		if(fabs(s-snapshots(k)) < 0.5*ds_){
+
+			outfile << s << "\t" << offdiag_H() << "\t";
+
+			for(int i = 0; i < N_; ++i){
+				for(int j = 0; j < N_; ++j){
+					outfile << H_(i,j) << "\t";
+				}
+			}
+
+			outfile << endl;
+			++k;
 		}
 	}
-	H0(0,0) = 2*d-g;
-	H0(1,1) = 4*d-g;
-	H0(2,2) = 6*d-g;
-	H0(3,3) = 6*d-g;
-	H0(4,4) = 8*d-g;
-	H0(5,5) = 10*d-g;
 
-	cout << "\nOriginal Hamiltonian:\n" << endl;
-	display(H0, 6);	
+	outfile.close();
+}
 
-	mat H = srg(H0, 6, smax, ds);
-	cout << "\nDiagonalized Hamiltonian (SRG)\n" << endl;
-	display(H, 6);
+void CSRG::magnus(vec snapshots, string filename){
 
-	H = magnus(H0, 6, smax, ds);
-	cout << "\nDiagonalized Hamiltonian (SRG w/ Magnus Expansion)\n" << endl;
-	display(H, 6);
+	int k = 0;
+	H_ = H0_;
+	Omega_.zeros(N_,N_);
 
-	return 0;
+	// open file
+	ofstream outfile;
+	outfile.open(filename);
+	outfile << "# dimension of H = " << N_ << endl;
+	outfile << "# flow parameter s, norm of off-diagonal elements of H, vectorized elements of H (N*N elements)" << endl;
+
+
+	for(double s = 0; s <= smax_; s += ds_){
+
+		RK4_magnus();
+
+		// write snapshots to file
+		if(fabs(s-snapshots(k)) < 0.5*ds_){
+
+			outfile << s << "\t" << offdiag_H() << "\t";
+
+			for(int i = 0; i < N_; ++i){
+				for(int j = 0; j < N_; ++j){
+					outfile << H_(i,j) << "\t";
+				}
+			}
+
+			outfile << endl;
+			++k;
+		}
+	}
+}
+
+mat CSRG::srg(){
+
+	H_ = H0_;
+	for(double s = 0; s <= smax_; s += ds_) RK4_srg();
+	return H_;
+}
+
+mat CSRG::magnus(){
+
+	H_ = H0_;
+	Omega_.zeros(N_,N_);
+
+	for(double s = 0; s <= smax_; s += ds_) RK4_magnus();
+	return H_;
 }
