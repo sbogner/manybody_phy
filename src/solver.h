@@ -1,3 +1,6 @@
+// calculates Ecorr for pairing model for various 
+// interaction strengths g using different methods
+
 #ifndef SOLVER_H
 #define SOLVER_H
 
@@ -6,7 +9,6 @@
 #include <string> 
 #include <fstream>
 #include <iomanip>
-#include <vector>
 #include <armadillo>
 #include "time.h"
 #include "system.h"
@@ -27,7 +29,7 @@ public:
 
 	void MBPT2();
 	void SRG();
-
+	
 };
 
 #endif

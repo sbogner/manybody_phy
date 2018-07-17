@@ -16,7 +16,7 @@ class CFermionSystem{
 public:
 
 	int N_, F_;
-	int particles_, sp_states_; // degenerate sp states
+	int particles_, sp_states_; // doubly-degenerate sp states
 	double d_, g_;
 	
 

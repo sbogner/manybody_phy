@@ -1,3 +1,6 @@
+// calculates Ecorr for pairing model for various 
+// interaction strengths g using different methods
+
 #include "solver.h"
 
 

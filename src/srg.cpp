@@ -1,3 +1,5 @@
+// diagonalizes a matrix H using standard SRG and SRG w/ magnus expansion
+
 #include "srg.h"
 
 using namespace std;
