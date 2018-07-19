@@ -28,27 +28,23 @@ CFermionSystem::CFermionSystem(int particles, int sp_states, double d, double g)
 
 void CFermionSystem::generate_basis(){
 
-	states_.resize(N_);
+	states_.set_size(N_,2);
 
 	for(int i = 0; i < N_; ++i){
 
-
-		states_[i].resize(2);
-
 		// assign quantum number p
-		states_[i][0] = floor(i/2.0);
+		states_(i,0) = floor(i/2.0);
 
 		// assign spins
-		if(i%2 == 0) states_[i][1] = 1;
-		else states_[i][1] = -1;
-
+		if(i%2 == 0) states_(i,1) = 1;
+		else states_(i,1) = -1;
 	}
 }
 
 double CFermionSystem::h0(int q, int r){
 
 	// return kinetic energy p*d
-	if(q == r) return states_[q][0]*d_;
+	if(q == r) return states_(q,0)*d_;
 	else return 0.0;
 }
 
@@ -58,14 +54,14 @@ double CFermionSystem::v(int q, int r, int s, int t){
 	int spin_q, spin_r, spin_s, spin_t;
 
 	// retrieve quantum numbers 
-	p_q = states_[q][0];
-	p_r = states_[r][0];
-	p_s = states_[s][0];
-	p_t = states_[t][0];
-	spin_q = states_[q][1];
-	spin_r = states_[r][1];
-	spin_s = states_[s][1];
-	spin_t = states_[t][1];
+	p_q = states_(q,0);
+	p_r = states_(r,0);
+	p_s = states_(s,0);
+	p_t = states_(t,0);
+	spin_q = states_(q,1);
+	spin_r = states_(r,1);
+	spin_s = states_(s,1);
+	spin_t = states_(t,1);
 
 	// return interaction energy
 	if( (p_q == p_r) && (p_s == p_t) ){
@@ -96,12 +92,12 @@ double CFermionSystem::eps(int q, int r){
 	else return 0.0;
 }
 
-double CFermionSystem::eps(vector<int>& holes, vector<int>& parts){
+double CFermionSystem::eps(vec holes, vec parts){
 
 	double E = 0.0;
 
-	for(int i = 0; i < holes.size(); ++i) E += f(holes[i],holes[i]);
-	for(int a = 0; a < parts.size(); ++a) E -= f(parts[a],parts[a]);
+	for(int i = 0; i < holes.n_elem(); ++i) E += f(holes(i),holes(i));
+	for(int a = 0; a < parts.n_elem(); ++a) E -= f(parts(a),parts(a));
 
 	return E;
 }

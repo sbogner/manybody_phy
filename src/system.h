@@ -6,7 +6,7 @@
 #include <string> 
 #include <fstream>
 #include <iomanip>
-#include <vector>
+#include <armadillo>
 #include "time.h"
 
 using namespace std;
@@ -18,10 +18,8 @@ public:
 	int N_, F_;
 	int particles_, sp_states_; // doubly-degenerate sp states
 	double d_, g_;
-	
 
-	vector<vector<int>> states_;
-	vector<vector<double>> H_;
+	imat states_;
 
 	CFermionSystem();
 	CFermionSystem(int particles, int sp_states, double d, double g);
@@ -33,7 +31,7 @@ public:
 	double v(int q, int r, int s, int t);
 	double f(int q, int r);
 	double eps(int q, int r);
-	double eps(vector<int>& holes, vector<int>& parts);
+	double eps(vec holes, vec parts);
 
 };
 
