@@ -132,8 +132,8 @@ void CIMSRG::build_occ1B(){
 void CIMSRG::build_occ2B_1(){
 
 	occ2B_1_.zeros(dim2B_,dim2B_);
-	for(int index = 0; index < dim2B_; ++index){
-		occ2B_1_(index,index) = occ1B_(basis2B_(index,0))-occ1B_(basis2B_(index,1));
+	for(int p = 0; p < dim2B_; ++p){
+		occ2B_1_(p,p) = occ1B_(basis2B_(p,0))-occ1B_(basis2B_(p,1));
 	}
 }
 
@@ -141,8 +141,8 @@ void CIMSRG::build_occ2B_1(){
 void CIMSRG::build_occ2B_2(){
 
 	occ2B_2_.zeros(dim2B_,dim2B_);
-	for(int index = 0; index < dim2B_; ++index){
-		occ2B_2_(index,index) = 1-occ1B_(basis2B_(index,0))-occ1B_(basis2B_(index,1));
+	for(int p = 0; p < dim2B_; ++p){
+		occ2B_2_(p,p) = 1-occ1B_(basis2B_(p,0))-occ1B_(basis2B_(p,1));
 	}	
 }
 
@@ -150,8 +150,8 @@ void CIMSRG::build_occ2B_2(){
 void CIMSRG::build_occ2B_3(){
 
 	occ2B_3_.zeros(dim2B_,dim2B_);
-	for(int index = 0; index < dim2B_; ++index){
-		occ2B_3_(index,index) = occ1B_(basis2B_(index,0))*occ1B_(basis2B_(index,1));
+	for(int p = 0; p < dim2B_; ++p){
+		occ2B_3_(p,p) = occ1B_(basis2B_(p,0))*occ1B_(basis2B_(p,1));
 	}	
 }	
 
@@ -275,16 +275,153 @@ double CIMSRG::Gammaod_norm(){
 	}
 }
 
-mat CIMSRG::ph_transform2B(mat ){
+mat CIMSRG::ph_transform2B(mat matrix2B){
+
+	int i, j, k, l;
+	irowvec state1, state2;
+
+	mat ph_matrix2B = zeros<mat>(dim2B_,dim2B_);
+	for(int index1 = 0; index1 < dim2_; ++index1){
+
+		i = basis2B_(index1,0);
+		j = basis2B_(index1,1);
+
+
+		for(int index2 = 0; index2 < dim2B_; ++index2){
+
+			k = basis2B_(index2,0);
+			l = basis2B_(index2,1);
+
+			state1 = {i,j};
+			state2 = {k,l};
+			
+			ph_matrix2B(p,q) -= matrix2B(index2B_[state1],index2B_[state2]);
+		}
+	}
+
+	return ph_matrix2B;
+}
+
+mat CIMSRG::inverse_ph_transform2B(mat ph_matrix2B){
+
+	int i, j, k, l;
+	irowvec state1, state2;
+
+	mat matrix2B = zeros<mat>(dim2B_,dim2B_);
+	for(int index1 = 0; index1 < dim2_; ++index1){
+
+		i = basis2B_(index1,0);
+		j = basis2B_(index1,1);
+
+
+		for(int index2 = 0; index2 < dim2B_; ++index2){
+
+			k = basis2B_(index2,0);
+			l = basis2B_(index2,1);
+
+			state1 = {i,j};
+			state2 = {k,l};
+			
+			matrix2B(p,q) -= ph_matrix2B(index2B_[state1],index2B_[state2]);
+		}
+	}
+
+	return matrix2B;	
+}
+
+mat CIMSRG::commutator(mat A, mat B){
+
+	return A*B-B*A;
+}
+
+void CIMSRG::calc_eta_wegner(){
+
+	int index1, index2;
+	irowvec state1, state2;
+
+	// split into diagonal and off-diagonal parts
+	mat fd, fod, Gammad, Gammaod, GammaGamma;
+	fd.zeros(size(f_));
+	fod.zeros(size(f_));
+	Gammad.zeros(size(Gamma_));
+	Gammaod.zeros(size(Gamma_));
+
+	for(int a = 0; a < nparts_; ++a){
+		for(int i = 0; i < nholes_; ++i){
+
+			fod(a,i) = f_(a,i);
+			fod(i,a) = f_(i,a);
+		}
+	}
+	fd = f_-fod;
+
+	for(int a = 0; a < nparts_; ++a){
+		for(int b = 0; b < nparts_; ++b){
+			for(int i = 0; i < nholes_; ++i){
+				for(int j = 0; j < nholes_; ++j){
+
+					state1 = {a,b};
+					state2 = {i,j};
+					index1 = index2B_[state1];
+					index2 = index2B_[state2];
+
+					Gammaod(index1,index2) = Gamma_(index1,index2);
+					Gammaod(index2,index1) = Gamma_(index2,index1);
+				}
+			}
+		}
+	}
+	Gammad = Gamma_-Gammaod;
+
+	// 1B-1B interaction
+	eta1B_ = commutator(fd, fod);
+
+	// 1B-2B interaction
+	for(int p = 0; p < dim1B_; ++p){
+		for(int q = 0; q < dim1B_; ++q){
+			for(int i = 0; i < nholes_; ++i){
+				for(int a = 0; a < nparts_; ++a){
+
+					state1 = {a,p};
+					state2 = {i,q};
+					index1 = index2B_[state1];
+					index2 = index2B_[state2];
+
+					eta1B_(p,q) += fd(i,a)*Gammaod(index1,index2)-fod(i,a)*Gammad(index1,index2);
+
+					state1 = {i,p};
+					state2 = {a,q};
+					index1 = index2B_[state1];
+					index2 = index2B_[state2];
+
+					eta1B_(p,q) += fod(a,i)*Gammad(index1,index2)-fd(a,i)*Gammaod(index1,index2);
+				}
+			}
+		}
+	}
+
+	// 2B-2B interaction
+	GammaGamma = Gammad*occ2B_2_*Gammaod;
+	for(int p = 0; p < dim1B_; ++p){
+		for(int q = 0; q < dim1B_; ++q){
+			for(int i = 0; i < nholes_; ++i){
+
+				state1 = {i,p};
+				state2 = {i,q};
+				index1 = index2B_[state1];
+				index2 = index2B_[state2];
+
+				eta1B_(p,q) += 0.5*(GammaGamma(index1,index2))
+			}
+		}
+	}
+
 
 }
 
-
-void inverse_ph_transform2B();
-
 void calc_eta_imtime();
 void calc_eta_white();
-void calc_eta_wegner();
+
 
 int main(){
 
