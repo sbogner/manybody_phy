@@ -336,8 +336,8 @@ mat CIMSRG::commutator(mat A, mat B){
 
 void CIMSRG::calc_eta_wegner(){
 
-	int index1, index2;
-	irowvec state1, state2;
+	int index1, index2, index3;
+	irowvec state1, state2, state3;
 
 	// split into diagonal and off-diagonal parts
 	mat fd, fod, Gammad, Gammaod, GammaGamma;
@@ -349,8 +349,8 @@ void CIMSRG::calc_eta_wegner(){
 	for(int a = 0; a < nparts_; ++a){
 		for(int i = 0; i < nholes_; ++i){
 
-			fod(a,i) = f_(a,i);
-			fod(i,a) = f_(i,a);
+			fod(parts_(a),holes_(i)) = f_(parts_(a),holes_(i));
+			fod(holes_(i),parts_(a)) = f_(holes_(i),parts_(a));
 		}
 	}
 	fd = f_-fod;
@@ -373,6 +373,7 @@ void CIMSRG::calc_eta_wegner(){
 	}
 	Gammad = Gamma_-Gammaod;
 
+	// ONE-BODY ETA
 	// 1B-1B interaction
 	eta1B_ = commutator(fd, fod);
 
@@ -411,11 +412,73 @@ void CIMSRG::calc_eta_wegner(){
 				index1 = index2B_[state1];
 				index2 = index2B_[state2];
 
-				eta1B_(p,q) += 0.5*(GammaGamma(index1,index2))
+				eta1B_(p,q) += 0.5*(GammaGamma(index1,index2)-trans(GammaGamma)(index1,index2));
 			}
 		}
 	}
 
+	GammaGamma = Gammad*occ2B_3_*Gammaod;
+	for(int p = 0; p < dim1B_; ++p){
+		for(int q = 0; q < dim1B_; ++q){
+			for(int r = 0; r < dim1B_; ++r){
+
+				state1 = {r,p};
+				state2 = {r,q};
+				index1 = index2B_[state1];
+				index2 = index2B_[state2];
+
+				eta1B_(p,q) += 0.5*(GammaGamma(index1,index2)-trans(GammaGamma)(index1,index2));
+			}
+		}
+	}
+
+	// TWO-BODY ETA
+	// 1B-2B interaction
+	eta2B_.zeros(size(Gamma_));
+	for(int p = 0; p < dim1B_; ++p){
+		for(int q = 0; q < dim1B_; ++q){
+			for(int r = 0; r < dim1B_; ++r){
+				for(int s = 0; s < dim1B_; ++s){
+
+					state1 = {p,q};
+					state2 = {r,s};
+					index1 = index2B_[state1];
+					index2 = index2B_[state2];
+
+					for(int t = 0; t < dim1B_; ++t){
+
+						state3 = {t,q};
+						index3 = index2B_[state3];
+						eta2B_(index1,index2) += (fd(p,t)*Gammaod(index3,index2)-fod(p,t)*Gammad(index3,index2));
+						
+						state3 = {p,t};
+						index3 = index2B_[state3];
+						eta2B_(index1,index2) += (fd(q,t)*Gammaod(index3,index2)-fod(p,t)*Gammad(index3,index2));					
+
+						state3 = {t,s};
+						index3 = index2B_[state3];
+						eta2B_(index1,index2) += (fod(t,r)*Gammad(index1,index3)-fd(t,r)*Gammaod(index1,index3));	
+
+						state3 = {r,t};
+						index3 = index2B_[state3];
+						eta2B_(index1,index2) += (fod(t,s)*Gammad(index1,index3)-fd(t,s)*Gammaod(index1,index3));	
+					}
+				}
+			}
+		}
+	}
+
+	// 2B-2B interaction
+	GammaGamma = Gammad*occ2B_2_*Gammaod;
+	eta2B_ += 0.5*(GammaGamma-trans(GammaGamma))
+
+	// transform to particle-hole representation
+	ph_Gammad = ph_transform2B(Gammad);
+	ph_Gammaod = ph_transform2B(Gammaod);
+	ph_GammaGamma = ph_Gammad*occ2B_1_*ph_Gammaod;
+
+	// transform back
+	GammaGamma = inverse_ph_transform2B(ph_GammaGamma);
 
 }
 
