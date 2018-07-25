@@ -22,6 +22,7 @@ CIMSRG::CIMSRG(int dim1B, double d, double g, double smax, double ds, ivec holes
 	build_ph_basis2B();
 	build_occ1B();
 	build_occ2B_1();
+	build_ph_occ2B_1();
 	build_occ2B_2();
 	build_occ2B_3();
 	build_hamiltonian();
@@ -137,6 +138,14 @@ void CIMSRG::build_occ2B_1(){
 	}
 }
 
+void CIMSRG::build_ph_occ2B_1(){
+
+	ph_occ2B_1_.zeros(dim2B_,dim2B_);
+	for(int p = 0; p < dim2B_; ++p){
+		ph_occ2B_1_(p,p) = occ1B_(ph_basis2B_(p,0))-occ1B_(ph_basis2B_(p,1));
+	}	
+}
+
 // 1 - n_a - n_b
 void CIMSRG::build_occ2B_2(){
 
@@ -153,7 +162,7 @@ void CIMSRG::build_occ2B_3(){
 	for(int p = 0; p < dim2B_; ++p){
 		occ2B_3_(p,p) = occ1B_(basis2B_(p,0))*occ1B_(basis2B_(p,1));
 	}	
-}	
+}
 
 void CIMSRG::build_hamiltonian(){
 
@@ -238,7 +247,6 @@ void CIMSRG::normal_order(){
 	Gamma_ = H2B_;
 }
 
-
 double CIMSRG::fod_norm(){
 
 	double norm = 0.0;
@@ -322,7 +330,7 @@ mat CIMSRG::inverse_ph_transform2B(mat ph_matrix2B){
 			state1 = {i,j};
 			state2 = {k,l};
 			
-			matrix2B(p,q) -= ph_matrix2B(index2B_[state1],index2B_[state2]);
+			matrix2B(p,q) -= ph_matrix2B(ph_index2B_[state1],ph_index2B_[state2]);
 		}
 	}
 
@@ -373,7 +381,6 @@ void CIMSRG::calc_eta_wegner(){
 	}
 	Gammad = Gamma_-Gammaod;
 
-	// ONE-BODY ETA
 	// 1B-1B interaction
 	eta1B_ = commutator(fd, fod);
 
@@ -432,7 +439,6 @@ void CIMSRG::calc_eta_wegner(){
 		}
 	}
 
-	// TWO-BODY ETA
 	// 1B-2B interaction
 	eta2B_.zeros(size(Gamma_));
 	for(int p = 0; p < dim1B_; ++p){
@@ -473,18 +479,208 @@ void CIMSRG::calc_eta_wegner(){
 	eta2B_ += 0.5*(GammaGamma-trans(GammaGamma))
 
 	// transform to particle-hole representation
-	ph_Gammad = ph_transform2B(Gammad);
-	ph_Gammaod = ph_transform2B(Gammaod);
-	ph_GammaGamma = ph_Gammad*occ2B_1_*ph_Gammaod;
+	mat ph_Gammad = ph_transform2B(Gammad);
+	mat ph_Gammaod = ph_transform2B(Gammaod);
+	mat ph_GammaGamma = ph_Gammad*ph_occ2B_1_*ph_Gammaod;
 
 	// transform back
 	GammaGamma = inverse_ph_transform2B(ph_GammaGamma);
 
+	// commutator/antisymmetrization
+	mat work = zeros<mat>(size(GammaGamma));
+	for(index1 = 0; index1 < dim2B_; ++index1){
+
+		i = basis2B_(index1,0);
+		j = basis2B_(index1,1);
+		state1 = {j,i};
+
+		for(index2 = 0; index2 < dim2B_; ++index2){
+
+			k = basis2B_(index2,0);
+			l = basis2B_(index2,1);
+			state2 = {l,k};
+
+			work(index1,index2) += (GammaGamma(index2B_[state1],index2) + GammaGamma(index1,index2B_[state2])
+				                    - GammaGamma(index1,index2) - GammaGamma(index2B_[state1],index2B_[state2]));
+		}
+	}
+
+	GammaGamma = work;
+	eta2B_ += GammaGamma;
 }
 
-void calc_eta_imtime();
-void calc_eta_white();
+void CIMSRG::calc_derivatives(){
 
+	// zero-body
+	dE_ = 0.0;
+	for(int i = 0; i < nholes_; ++i){
+		for(int a = 0; a < nparts_; ++a){
+
+			dE_ += (eta1B_(holes_(i),parts_(a))*f_(parts_(a),holes_(i))
+			       - eta1B_(parts_(a),holes_(i))*f_(holes_(i),parts_(a)));
+		}
+	}
+
+	int index1, index2, index3;
+	irowvec state1, state2, state3;
+	for(int i = 0; i < nholes_; ++i){
+		for(int j = 0; j < nholes_; ++j){
+			for(int a = 0; a < nparts_; ++a){
+				for(int b = 0; b <nparts_; ++b){
+
+					state1 = {i,j};
+					state2 = {a,b};
+					index1 = index2B_[state1];
+					index2 = index2B_[state2];
+
+					dE_ += 0.5*eta2B_(index1,index2)*Gamma_(index2,index1);
+				}
+			}
+		}
+	}
+
+	// one-body
+	df_ = commutator(eta1B_,f_);
+	for(int p = 0; p < dim1B_; ++p){
+		for(int q = 0; q < dim1B_; ++q){
+			for(int i = 0; i < nholes_; ++i){
+				for(int a = 0; a <nparts_; ++a){
+
+					state1 = {a,p};
+					state2 = {i,q};
+					index1 = index2B_[state1];
+					index2 = index2B_[state2];
+
+					df_(p,q) += (eta1B_(holes_(i),parts_(a))*Gamma_(index1,index2)-f_(holes_(i),parts_(a))*eta2B_(index1,index2));
+
+					state1 = {i,p};
+					state2 = {a,q};
+					index1 = index2B_[state1];
+					index2 = index2B_[state2];
+
+					df_(p,q) -= (eta1B_(parts_(a),holes_(i))*Gamma_(index1,index2)-f_(holes_(i),parts_(a))*eta2B_(index1,index2));
+					
+				}
+			}
+		}
+	}
+
+	mat etaGamma = eta2B_*occ2B_2_*Gamma_;
+	for(int p = 0; p < dim1B_; ++p){
+		for(int q = 0; q < dim1B_; ++q){
+			for(int r = 0; r < dim1B_; ++r){
+
+				state1 = {r,p};
+				state2 = {r,q};
+				index1 = index2B_[state1];
+				index2 = index2B_[state2];
+
+				df_(p,q) += 0.5*(etaGamma(index1,index2)+trans(etaGamma)(index1,index2));
+			}
+		}
+	}
+
+	// two-body
+	dGamma_ = zeros<mat>(size(Gamma_));
+	for(int p = 0; p < dim1B_; ++p){
+		for(int q = 0; q < dim1B_; ++q){
+			for(int r = 0; r < dim1B_; ++r){
+				for(int s = 0; s < dim1B_; ++s){
+
+					state1 = {p,q};
+					state2 = {r,s};
+					index1 = index2B_[state1];
+					index2 = index2B_[state2];
+
+					for(int t = 0; t < dim1B_; ++t){
+
+						state3 = {t,q};
+						index3 = index2B_[state3];
+						dGamma_(index1,index2) += (eta1B_(p,t)*Gamma_(index3,index2)-f_(p,t)*eta2B_(index3,index2));
+
+						state3 = {p,t};
+						index3 = index2B_[state3];
+						dGamma_(index1,index2) += (eta1B_(q,t)*Gamma_(index3,index2)-f_(q,t)*eta2B_(index3,index2));
+
+						state3 = {t,s};
+						index3 = index2B_[state3];
+						dGamma_(index1,index2) += (f_(t,r)*eta2B_(index1,index3)-eta1B_(t,r)*Gamma_(index1,index3));					
+
+						state3 = {r,t};
+						index3 = index2B_[state3];
+						dGamma_(index1,index2) += (f_(t,s)*eta2B_(index1,index3)-eta1B_(t,s)*Gamma_(index1,index3));
+					}
+				}
+			}
+		}
+	}
+
+	etaGamma = eta2B_*occ2B_2_*Gamma;
+	dGamma_ += 0.5*(etaGamma+trans(etaGamma));
+
+	// transform matrices to ph representation
+	mat ph_eta2B = ph_transform2B(eta2B_);
+	mat ph_Gamma = ph_transform2B(Gamma_);
+	mat ph_etaGamma = ph_eta2B*ph_occ2B_1_*ph_Gamma;
+
+	// transform back
+	etaGamma = inverse_ph_transform2B(ph_etaGamma);
+
+	mat work = zeros<mat>(size(etaGamma));
+	for(int index1 = 0; index1 < dim2B_; ++index1){
+
+		i = basis2B_(index1,0);
+		j = basis2B_(index1,1);
+		state1 = {j,i};
+
+		for(int index2 = 0; index2 < dim2B_; ++index2){
+
+			k = basis2B_(index2,0);
+			l = basis2B_(index2,1);
+			state2 = {l,k};
+
+			work(index1,index2) += (etaGamma(index2B_[state1],index2) + etaGamma(index1,index2B_[state2])
+				                    - etaGamma(index1,index2) - etaGamma(index2B_[state1],index2B_[state2]));
+		}
+	}
+	etaGamma = work;
+	dGamma_ += etaGamma;
+}
+
+void CIMSRG::RK4(){
+
+	double E_k1, E_k2, E_k3, E_k4;
+	mat f_k1, f_k2, f_k3, f_k4;
+	mat Gamma_k1, Gamma_k2, Gamma_k3, Gamma_k4;
+
+	double E = E_;
+	mat f = f_;
+	mat Gamma = Gamma_;
+
+	// K1
+	calc_eta_wegner();
+	calc_derivatives();
+	E_k1 = ds*dE_;
+	f_k1 = ds*df_;
+	Gamma_k1 = ds*dGamma_;
+
+
+	// K2
+	E_ = E+0.5*E_k1;
+	f_ = f+0.5*f_k1;
+	Gamma_ = Gamma+0.5*Gamma_k1;
+	calc_eta_wegner();
+	calc_derivatives();
+	E_k2 = 	
+	
+
+
+	
+
+	
+
+
+}
 
 int main(){
 

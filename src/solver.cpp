@@ -32,8 +32,8 @@ void CSolver::MBPT2(){
 			for(int b = system.F_; b < system.N_; ++b){
 				for(int i = 0; i < system.F_; ++i){
 					for(int j = 0; j < system.F_; ++j){
-						vector<int> holes = {i,j};
-						vector<int> parts = {a,b};
+						ivec holes = {i,j};
+						ivec parts = {a,b};
 						Ecorr += system.v(a,b,i,j)*system.v(a,b,i,j)/system.eps(holes,parts);
 					}
 				}

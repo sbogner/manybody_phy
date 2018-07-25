@@ -10,6 +10,7 @@
 #include "time.h"
 
 using namespace std;
+using namespace arma;
 
 class CFermionSystem{
 
@@ -31,7 +32,7 @@ public:
 	double v(int q, int r, int s, int t);
 	double f(int q, int r);
 	double eps(int q, int r);
-	double eps(vec holes, vec parts);
+	double eps(ivec holes, ivec parts);
 
 };
 

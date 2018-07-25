@@ -92,12 +92,12 @@ double CFermionSystem::eps(int q, int r){
 	else return 0.0;
 }
 
-double CFermionSystem::eps(vec holes, vec parts){
+double CFermionSystem::eps(ivec holes, ivec parts){
 
 	double E = 0.0;
 
-	for(int i = 0; i < holes.n_elem(); ++i) E += f(holes(i),holes(i));
-	for(int a = 0; a < parts.n_elem(); ++a) E -= f(parts(a),parts(a));
+	for(int i = 0; i < holes.n_elem; ++i) E += f(holes(i),holes(i));
+	for(int a = 0; a < parts.n_elem; ++a) E -= f(parts(a),parts(a));
 
 	return E;
 }

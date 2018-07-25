@@ -38,18 +38,17 @@ public:
 	int dim1B_, dim2B_;
 	int nholes_, nparts_;
 
-	double d_, g_, E_;
+	double d_, g_, E_, dE_;
 	double smax_, ds_;
 
 	ivec holes_, parts_;
 	ivec basis1B_, occ1B_;
 
 	imat basis2B_, ph_basis2B_;
-	imat occ2B_1_, occ2B_2_, occ2B_3_;
+	imat occ2B_1_, ph_occ2B_1_, occ2B_2_, occ2B_3_;
 
 	mat H1B_, H2B_, eta1B_, eta2B_; 
-	mat f_, Gamma_;
-
+	mat f_, df_, Gamma_, dGamma_;
 
 	map<irowvec,int,StateComparator> index2B_;
 	map<irowvec,int,StateComparator> ph_index2B_;
@@ -72,10 +71,10 @@ public:
 	mat commutator(mat A, mat B);
 
 	void calc_eta_wegner();
-	void calc_eta_imtime();
-	void calc_eta_white();
+	//void calc_eta_imtime();
+	//void calc_eta_white();
 
-	void RK4_imsrg();
+	void RK4();
 
 	void imsrg(vec snapshots, string filename);
 

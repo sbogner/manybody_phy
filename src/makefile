@@ -3,16 +3,16 @@ CFLAGS = -std=c++11
 LIB = -larmadillo
 
 
-all: RUN TEST SRG
+all: RUN TEST
 
 RUN: main.o system.o solver.o srg.o
 	${CC} ${CFLAGS} main.o system.o solver.o srg.o -o RUN ${LIB}
 
-SRG: main.o srg.o
-	${CC} ${CFLAGS} main.o srg.o -o SRG ${LIB}
-
 TEST: test_main.o unit_tests.o system.o
 	${CC} ${CFLAGS} test_main.o unit_tests.o system.o -o TEST 
+
+SRG: main.o srg.o
+	${CC} ${CFLAGS} main.o srg.o -o SRG ${LIB}
 
 
 
@@ -39,5 +39,5 @@ unit_tests.o: test/unit_tests.cpp
 clean: 
 	rm *.o
 	rm RUN 
-	rm SRG
-	rm TEST 
+	rm TEST
+
