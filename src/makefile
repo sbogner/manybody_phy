@@ -1,26 +1,33 @@
 CC = g++
-CFLAGS = -std=c++11
+CFLAGS = -std=c++11 -Wall
 LIB = -larmadillo
 
 
-all: RUN TEST
+all: IMSRG TEST
 
-RUN: main.o system.o solver.o srg.o
-	${CC} ${CFLAGS} main.o system.o solver.o srg.o -o RUN ${LIB}
+MBPT2: mbpt2.o solver.o system.o
+	${CC} ${CFLAGS} mbpt2.o system_tests.o system.o -o MBPT2
 
-TEST: test_main.o unit_tests.o system.o
-	${CC} ${CFLAGS} test_main.o unit_tests.o system.o -o TEST 
+TEST: test_main.o system_tests.o system.o
+	${CC} ${CFLAGS} test_main.o system_tests.o system.o -o TEST
 
-SRG: main.o srg.o
-	${CC} ${CFLAGS} main.o srg.o -o SRG ${LIB}
+SRG: srg.o
+	${CC} ${CFLAGS} srg.o -o SRG ${LIB}
+
+IMSRG: imsrg.o
+	${CC} ${CFLAGS} imsrg.o -o IMSRG ${LIB}
 
 
 
-main.o: main.cpp 
-	${CC} ${CFLAGS} -c main.cpp
+
+mbpt2.o: mbpt2.cpp 
+	${CC} ${CFLAGS} -c mbpt2.cpp
 
 srg.o: srg.cpp
 	${CC} ${CFLAGS} -c srg.cpp ${LIB}
+
+imsrg.o: imsrg.cpp
+	${CC} ${CFLAGS} -c imsrg.cpp ${LIB}
 
 solver.o: solver.cpp
 	${CC} ${CFLAGS} -c solver.cpp
@@ -31,13 +38,16 @@ system.o: system.cpp
 test_main.o: test/test_main.cpp
 	${CC} ${CFLAGS} -c test/test_main.cpp
 
-unit_tests.o: test/unit_tests.cpp
-	${CC} ${CFLAGS} -c test/unit_tests.cpp
+system_tests.o: test/system_tests.cpp
+	${CC} ${CFLAGS} -c test/system_tests.cpp
+
+imsrg_tests.o: test/imsrg_tests.cpp
+	${CC} ${CFLAGS} -c test/imsrg_tests.cpp
 
 
 
 clean: 
 	rm *.o
-	rm RUN 
+	rm IMSRG
 	rm TEST
 

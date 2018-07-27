@@ -8,6 +8,7 @@
 #include <string> 
 #include <fstream>
 #include <iomanip>
+#include <stdio.h>
 #include <armadillo>
 #include <map>
 
@@ -18,12 +19,8 @@ using namespace arma;
 // for ordering index map
 struct StateComparator{
 	bool operator()(const irowvec& left, const irowvec& right) const{
-		if(left(0) > right(0)) return true;
-		if(left(0) < right(0)) return false;
-		if(left(0) == right(0)){
-			if(left(1) > right(1)) return true;
-			if(left(1) < right(1)) return false;
-		}
+		if(left(0) == right(0)) return left(1) > right(1);
+		else return left(0) > right(0);
 	}
 };
 
@@ -45,7 +42,7 @@ public:
 	ivec basis1B_, occ1B_;
 
 	imat basis2B_, ph_basis2B_;
-	imat occ2B_1_, ph_occ2B_1_, occ2B_2_, occ2B_3_;
+	imat occ2B_1_, occ2B_2_, occ2B_3_, ph_occ2B_1_;
 
 	mat H1B_, H2B_, eta1B_, eta2B_; 
 	mat f_, df_, Gamma_, dGamma_;
@@ -59,6 +56,7 @@ public:
 	void build_occ2B_1();		// n_a - n_b
 	void build_occ2B_2();		// 1 - n_a - n_b
 	void build_occ2B_3();		// n_a * n_b
+	void build_ph_occ2B_1();
 	void build_hamiltonian();	// pairing model hamiltonian
 
 	void normal_order();
@@ -74,11 +72,12 @@ public:
 	//void calc_eta_imtime();
 	//void calc_eta_white();
 
-	void RK4();
+	void calc_derivatives();
+	//void RK4();
+	void euler();
 
 	void imsrg(vec snapshots, string filename);
-
-	mat imsrg();
+	double imsrg();             // returns E after flow
 };
 
 #endif

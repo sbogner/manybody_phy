@@ -64,13 +64,23 @@ double CFermionSystem::v(int q, int r, int s, int t){
 	spin_t = states_(t,1);
 
 	// return interaction energy
+	double v = 0.0;
+	if( (p_q == p_r) && (p_s == p_t) ){
+		if( (spin_q == spin_s) && (spin_r == spin_t) ) v = -0.5*g_;
+		if( (spin_q == spin_t) && (spin_r == spin_s) ) v = 0.5*g_;			
+	}
+	return v;
+	
+	/*
 	if( (p_q == p_r) && (p_s == p_t) ){
 		if( (spin_q == spin_r) || (spin_s == spin_t) ) return 0.0;
-		if( (spin_q == spin_s) && (spin_r == spin_t) ) return -0.5*g_;
-		if( (spin_q == spin_t) && (spin_r == spin_s) ) return 0.5*g_;	
+		else{
+			if( (spin_q == spin_s) && (spin_r == spin_t) ) return -0.5*g_;
+			if( (spin_q == spin_t) && (spin_r == spin_s) ) return 0.5*g_;			
+		}
 	}
 	else return 0.0;
-
+	*/
 }
 
 // fock operator
@@ -96,8 +106,8 @@ double CFermionSystem::eps(ivec holes, ivec parts){
 
 	double E = 0.0;
 
-	for(int i = 0; i < holes.n_elem; ++i) E += f(holes(i),holes(i));
-	for(int a = 0; a < parts.n_elem; ++a) E -= f(parts(a),parts(a));
+	for(unsigned i = 0; i < holes.n_elem; ++i) E += f(holes(i),holes(i));
+	for(unsigned a = 0; a < parts.n_elem; ++a) E -= f(parts(a),parts(a));
 
 	return E;
 }
