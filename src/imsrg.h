@@ -41,11 +41,14 @@ public:
 	ivec holes_, parts_;
 	ivec basis1B_, occ1B_;
 
+	vec prefactor_;
+
 	imat basis2B_, ph_basis2B_;
 	imat occ2B_1_, occ2B_2_, occ2B_3_, ph_occ2B_1_;
 
 	mat H1B_, H2B_, eta1B_, eta2B_; 
 	mat f_, df_, Gamma_, dGamma_;
+	mat Omega_, dOmega_;
 
 	map<irowvec,int,StateComparator> index2B_;
 	map<irowvec,int,StateComparator> ph_index2B_;
@@ -58,7 +61,6 @@ public:
 	void build_occ2B_3();		// n_a * n_b
 	void build_ph_occ2B_1();
 	void build_hamiltonian();	// pairing model hamiltonian
-
 	void normal_order();
 
 	double fod_norm();
@@ -69,15 +71,15 @@ public:
 	mat commutator(mat A, mat B);
 
 	void calc_eta_wegner();
-	//void calc_eta_imtime();
-	//void calc_eta_white();
-
 	void calc_derivatives();
-	//void RK4();
-	void euler();
+
+	void RK2_imsrg();
+	void euler_magnus();
 
 	void imsrg(vec snapshots, string filename);
 	double imsrg();             // returns E after flow
+
+	void commutator(mat A1B, mat A2B, mat B1B, mat B2B, double& C0B, mat& C1B, mat& C2B);
 };
 
 #endif
