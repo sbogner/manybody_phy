@@ -746,7 +746,33 @@ void CIMSRG::commutator(mat A1B, mat A2B, mat B1B, mat B2B, double& C0B, mat& C1
 	}
 
 	// 2B-2B
+	mat AB = A2B*occ2B_2_*B2B;
+	mat ABT = AB.t();
+	for(int p = 0; p < dim1B_; ++p){
+		for(int q = 0; q < dim1B_; ++q){
+			for(int i = 0; i < nholes_; ++i){
 
+				index1 = index2B_[{i,p}];
+				index2 = index2B_[{i,q}];	
+
+				df_(p,q) += 0.5*(AB(index1,index2)-ABT(index1,index2));		
+			}
+		}
+	}
+
+	etaGamma = eta2B_*occ2B_3_*Gamma_;
+	etaGammaT = etaGamma.t();
+	for(int p = 0; p < dim1B_; ++p){
+		for(int q = 0; q < dim1B_; ++q){
+			for(int r = 0; r < dim1B_; ++r){
+
+				index1 = index2B_[{r,p}];
+				index2 = index2B_[{r,q}];
+
+				df_(p,q) += 0.5*(etaGamma(index1,index2)+etaGammaT(index1,index2));
+			}
+		}
+	}
 
 
 
