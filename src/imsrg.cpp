@@ -27,6 +27,12 @@ CIMSRG::CIMSRG(int dim1B, double d, double g, double smax, double ds, ivec holes
 	build_occ2B_3();
 	build_hamiltonian();
 	normal_order();
+
+	Bmax_ = 170;
+	Omega0B_ = 0.0;
+	Omega1B_.zeros(dim1B_,dim1B_);
+	Omega2B_.zeros(dim2B_,dim2B_);
+	build_prefactors();
 }
 
 void CIMSRG::build_basis2B(){
@@ -199,6 +205,10 @@ void CIMSRG::build_hamiltonian(){
 			}
 		}
 	}
+
+	// store initial hamiltonian
+	H1B_initial_ = H1B_;
+	H2B_initial_ = H2B_;
 }
 
 void CIMSRG::normal_order(){
@@ -647,14 +657,6 @@ void CIMSRG::RK2_imsrg(){
 	Gamma_ = Gamma+Gamma_k2;
 }
 
-void CIMSRG::euler_magnus(){
-
-	calc_derivatives();
-	E_ += ds_*dE_;
-	f_ += ds_*df_;
-	Gamma_ += ds_*dGamma_;
-}
-
 void CIMSRG::imsrg(vec snapshots, string filename){
 
 	int k = 0;
@@ -686,14 +688,45 @@ double CIMSRG::imsrg(){
 }
 
 
-/*********************************************
-******************  MAGNUS  ******************
-*********************************************/
+void CSRG::get_prefactors(){
+
+	prefactor_.set_size(Bmax_);
+	vec B(Bmax_);
+	B(0) = 1.0;
+
+	// set all odd Bernoulli numbers
+	B(1) = -0.5; for(int n = 3; n < Bmax_; ++n) B(n) = 0.0;
+
+	// use recursive relation to calculate even Bernoulli numbers
+	for(int n = 2; n < Bmax_; n += 2){
+		B(n) = 0.0;
+		for(int k = 0; k < n; ++k) B(n) -= binomial_coeff(n+1,k)*B(k)/(n+1);
+	}
+
+	// calculate prefactors
+	for(int n = 0; n < Bmax_; ++n) prefactor_(n) = B(n)/factorial(n);
+}
+
+
+double CIMSRG::factorial(int n){
+
+	if(n > 0){
+		double logfactorial = 0.0;
+		for(int i = 1; i <= n; ++i) logfactorial += log((double) i);
+		return exp(logfactorial);
+	}
+	else return 1.0;
+}
+
+double CIMSRG::binomial_coeff(int n, int k){
+
+	return factorial(n)/(factorial(k)*factorial(n-k));
+}
 
 
 void CIMSRG::commutator(mat A1B, mat A2B, mat B1B, mat B2B, double& C0B, mat& C1B, mat& C2B){
 
-	int index1, index2;
+	int index1, index2, index3;
 
 	// ZERO-BODY PART
 	C0B = 0.0;
@@ -755,13 +788,13 @@ void CIMSRG::commutator(mat A1B, mat A2B, mat B1B, mat B2B, double& C0B, mat& C1
 				index1 = index2B_[{i,p}];
 				index2 = index2B_[{i,q}];	
 
-				df_(p,q) += 0.5*(AB(index1,index2)-ABT(index1,index2));		
+				C1B(p,q) += 0.5*(AB(index1,index2)-ABT(index1,index2));		
 			}
 		}
 	}
 
-	etaGamma = eta2B_*occ2B_3_*Gamma_;
-	etaGammaT = etaGamma.t();
+	AB = A2B*occ2B_3_*B2B;
+	ABT = AB.t();
 	for(int p = 0; p < dim1B_; ++p){
 		for(int q = 0; q < dim1B_; ++q){
 			for(int r = 0; r < dim1B_; ++r){
@@ -769,15 +802,92 @@ void CIMSRG::commutator(mat A1B, mat A2B, mat B1B, mat B2B, double& C0B, mat& C1
 				index1 = index2B_[{r,p}];
 				index2 = index2B_[{r,q}];
 
-				df_(p,q) += 0.5*(etaGamma(index1,index2)+etaGammaT(index1,index2));
+				C1B(p,q) += 0.5*(AB(index1,index2)+ABT(index1,index2));
 			}
 		}
 	}
 
+	// TWO-BODY PART
+	// 1B-1B
+	C2B = zeros<mat>(size(A2B));
+	for(int p = 0; p < dim1B_; ++p){
+		for(int q = 0; q < dim1B_; ++q){
+			for(int r = 0; r < dim1B_; ++r){
+				for(int s = 0; s < dim1B_; ++s){
 
+					index1 = index2B_[{p,q}];
+					index2 = index2B_[{r,s}];
 
+					for(int t = 0; t < dim1B_; ++t){
 
+						index3 = index2B_[{t,q}];
+						C2B(index1,index2) += (A1B(p,t)*B2B(index3,index2)-B1B(p,t)*A2B(index3,index2));
+
+						index3 = index2B_[{t,p}];
+						C2B(index1,index2) -= (A1B(q,t)*B2B(index3,index2)-B1B(q,t)*A2B(index3,index2));
+
+						index3 = index2B_[{t,s}];
+						C2B(index1,index2) -= (A1B(t,r)*B2B(index1,index3)-B1B(t,r)*A2B(index1,index3));					
+
+						index3 = index2B_[{t,r}];
+						C2B(index1,index2) += (A1B(t,s)*B2B(index1,index3)-B1B(t,s)*A2B(index1,index3));
+					}
+				}
+			}
+		}
+	}
+
+	// 2B-2B
+	AB = A2B*occ2B_2_*B2B;
+	dGamma_ += 0.5*(AB+AB.t());
+
+	// transform matrices to ph representation
+	mat ph_A = ph_transform2B(A2B);
+	mat ph_B = ph_transform2B(B2B);
+	mat ph_AB = ph_A*ph_occ2B_1_*ph_B;
+
+	// transform back
+	AB = inverse_ph_transform2B(ph_AB);
+
+	// antisymmetrization
+	int i, j, k, l;
+	mat work = zeros<mat>(size(AB));
+	for(int p = 0; p < dim2B_; ++p){
+
+		i = basis2B_(p,0);
+		j = basis2B_(p,1);
+		index1 = index2B_[{j,i}];
+
+		for(int q = 0; q < dim2B_; ++q){
+
+			k = basis2B_(q,0);
+			l = basis2B_(q,1);
+			index2 = index2B_[{l,k}];
+
+			work(p,q) += (AB(index1,q)+AB(p,index2)-AB(p,q)-AB(index1,index2));
+		}
+	}
+	AB = work;
+	C2B += AB;
 }
+
+void CIMSRG::nested_commutator(int n, mat A1B, mat A2B, double B0B, mat B1B, mat B2B, double& C0B, mat& C1B, mat& C2B){
+
+	if(n == 0){
+		C0B = B0B;
+		C1B = B1B;
+		C2B = B2B;
+	}
+	else{
+		
+		C0B = B0B;
+		C1B = B1B;
+		C2B = B2B;
+
+		for(int i = 0; i < n; ++i) commutator(A1B,A2B,C1B,C2B,C0B,C1B,C2B);
+	}
+}
+
 
 int main(int argc, char *argv[]){
 
@@ -790,6 +900,8 @@ int main(int argc, char *argv[]){
 	ivec parts = {4,5,6,7};
 	CIMSRG PairingModel(8, d, g, smax, ds, holes, parts);
 
+
+	/*
 	vec snapshots(38);
 	snapshots(0) = 0.0;
 
@@ -803,6 +915,9 @@ int main(int argc, char *argv[]){
 	snapshots(n) = smax;
 
 	PairingModel.imsrg(snapshots, "pairing_imsrg.dat");
+	*/
+
+
 
 	return 0;
 }

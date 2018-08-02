@@ -24,7 +24,7 @@
 
 
 \begin{document}
-\noindent This document is meant to help me organize my thoughts. I kept losing track of indices and factors while doing this by hand. I want expressions which can be easily and efficiently implemented.\\
+\noindent This document is meant to help me organize my thoughts. I kept losing track of indices and factors while doing this by hand. I want expressions that can be easily and efficiently implemented.\\
 
 \noindent Index convention:
 \begin{equation*}
@@ -64,22 +64,59 @@ we can use the fundamental commutator expressions to evaluate each term. For ref
 [A^{(1)},B^{(2)}]^{(1)} &= \sum_{pq}\sum_{rs} :a_p^\dagger a_q: (n_r-n_s) A_{rs}B_{sprq},\\
 [A^{(1)},B^{(2)}]^{(2)} &= \frac{1}{4} \sum_{pqrs}\sum_t :a_p^\dagger a_q^\dagger a_s a_r : \{ (1-P_{pq})A_{pt}B_{tqrs} -(1-P_{rs})A_{tr}B_{pqts}\},\\
 [A^{(2)},B^{(1)}]^{(1)} &= -[B^{(1)},A^{(2)}]^{(1)} = \sum_{pq}\sum_{rs} :a_p^\dagger a_q: (n_s-n_r) B_{rs}A_{sprq},\\
-[A^{(2)},B^{(1)}]^{(2)} &= -[B^{(1)},A^{(2)}]^{(2)} = \frac{1}{4} \sum_{pqrs}\sum_t :a_p^\dagger a_q^\dagger a_s a_r : \{(1-P_{rs})B_{tr}A_{pqts} -  (1-P_{pq})B_{pt}A_{tqrs}\},
+[A^{(2)},B^{(1)}]^{(2)} &= -[B^{(1)},A^{(2)}]^{(2)} = \frac{1}{4} \sum_{pqrs}\sum_t :a_p^\dagger a_q^\dagger a_s a_r :  \left\{ (1-P_{rs})B_{tr}A_{pqts} -  (1-P_{pq})B_{pt}A_{tqrs} \right\},
 \end{align}
 
 % 2B-2B
 \begin{align}
 [A^{(2)},B^{(2)}]^{(0)} &= \frac{1}{4} \sum_{pqrs} n_pn_q\bar{n}_r \bar{n}_s (A_{pqrs}B_{rspq}-B_{pqrs}A_{rspq}),\\
 [A^{(2)},B^{(2)}]^{(1)} &= \frac{1}{2} \sum_{pq}\sum_{rst} :a_p^\dagger a_q: (\bar{n}_r \bar{n}_s n_t + n_r n_s \bar{n}_t) (A_{tprs}B_{rstq}-B_{tprs}A_{rstq}),\\
-[A^{(2)},B^{(2)}]^{(2)} &= \frac{1}{4} \sum_{pqrs}\sum_{tu} :a_p^\dagger a_q^\dagger a_s a_r : \{ \frac{1}{2} (A_{pqtu}B_{turs}-B_{pqtu}A_{turs})(1-n_t-n_u)\\ &\ \ \ +  (n_t-n_u)(1-P_{ij})(1-P_{kl})A_{tpur}B_{uqts} \}
+[A^{(2)},B^{(2)}]^{(2)} &= \frac{1}{4} \sum_{pqrs}\sum_{tu} :a_p^\dagger a_q^\dagger a_s a_r : \Big\{ \frac{1}{2}(1-n_t-n_u) (A_{pqtu}B_{turs}-B_{pqtu}A_{turs})  \\ &\ \ \  +  (n_t-n_u)(1-P_{pq})(1-P_{rs})A_{tpur}B_{uqts} \Big\}
 \end{align}
 
-Now, we can simplify this a bit because many of the terms in the summations vanish. Using the index notation mentioned above, we have
+\noindent Now, we can simplify this a bit because many of the terms in the summations vanish. Using the index notation mentioned above, the zero-body component is
 
 \begin{align}
-C^{(0)} &= \sum_{pq}(n_p-n_q)A_{pq}B_{qp} + \frac{1}{4} \sum_{pqrs} n_pn_q\bar{n}_r \bar{n}_s (A_{pqrs}B_{rspq}-B_{pqrs}A_{rspq}),
+C^{(0)} &= \sum_{pq}(n_p-n_q)A_{pq}B_{qp} + \frac{1}{4} \sum_{pqrs} n_pn_q\bar{n}_r \bar{n}_s (A_{pqrs}B_{rspq}-B_{pqrs}A_{rspq}),\\
+&= \sum_{ia}(A_{ia}B_{ai}-A_{ai}B_{ia}) + \frac{1}{4} \sum_{ijab} (A_{ijab}B_{abij}-B_{ijab}A_{abij})
 \end{align}
 
+\noindent Note: when $A^{(2)}=\eta^{(2)}$ and $B^{(2)}=\Gamma=H^{(2)}$, the second term in (16) can be simplified further to
+\begin{equation}
+\frac{1}{2}\sum_{ijab} \eta_{ijab}\Gamma_{abij},
+\end{equation}
+because $\eta_{ijab}=-\eta_{abij}$ and $\Gamma_{ijab}=\Gamma_{abij}$.\\
+
+\noindent The one-body component simplifies to
+\begin{align}
+C^{(1)} &= \sum_{pq}\sum_{r} :a_p^\dagger a_q:(A_{pr}B_{rq}-B_{pr}A_{rq})\\
+& \ \ \ + \sum_{pq}\sum_{rs} :a_p^\dagger a_q: (n_r-n_s) A_{rs}B_{sprq} + \sum_{pq}\sum_{rs} :a_p^\dagger a_q: (n_s-n_r) B_{rs}A_{sprq} \\
+& \ \ \  + \frac{1}{2} \sum_{pq}\sum_{rst} :a_p^\dagger a_q: (\bar{n}_r \bar{n}_s n_t + n_r n_s \bar{n}_t) (A_{tprs}B_{rstq}-B_{tprs}A_{rstq}),\\
+&= \sum_{pq}\sum_{r} :a_p^\dagger a_q:(A_{pr}B_{rq}-B_{pr}A_{rq})\\
+& \ \ \  + \sum_{pq}\sum_{rs} :a_p^\dagger a_q: (n_r-n_s) (A_{rs}B_{sprq}-B_{rs}A_{sprq})\\
+& \ \ \ + \frac{1}{2} \sum_{pq}\sum_{rst} :a_p^\dagger a_q: (n_r n_s + n_t(1-n_r-n_s)) (A_{tprs}B_{rstq}-B_{tprs}A_{rstq}),\\
+&= \sum_{pq}\sum_{r} :a_p^\dagger a_q:(A_{pr}B_{rq}-B_{pr}A_{rq}) \\
+& \ \ \ + \sum_{pq}\sum_{ia} :a_p^\dagger a_q: ( A_{ia}B_{apiq}-B_{ia}A_{apiq}+B_{ai}A_{ipaq} -A_{ai}B_{ipaq} ) \\
+& \ \ \ + \frac{1}{2} \sum_{pq}\sum_{rst} :a_p^\dagger a_q: n_r n_s (A_{tprs}B_{rstq}-B_{tprs}A_{rstq})\\
+& \ \ \ + \frac{1}{2} \sum_{pq}\sum_{rsi} :a_p^\dagger a_q: (1-n_r-n_s) (A_{iprs}B_{rsiq}-B_{iprs}A_{rsiq}),\\
+&= \sum_{pq} :a_p^\dagger a_q: \left\{  \sum_{r} (A_{pr}B_{rq}-B_{pr}A_{rq}) \right. \\
+& \hspace{3cm} + \sum_{ia} (A_{ia}B_{apiq}-B_{ia}A_{apiq}+B_{ai}A_{ipaq} -A_{ai}B_{ipaq} ) \\
+& \hspace{3cm} + \frac{1}{2} \sum_{rst} n_r n_s (A_{tprs}B_{rstq}-B_{tprs}A_{rstq})\\
+& \hspace{3cm} \left. + \frac{1}{2} \sum_{rsi} (1-n_r-n_s) (A_{iprs}B_{rsiq}-B_{iprs}A_{rsiq}) \right\} 
+\end{align}
+
+\noindent And the two-body component is
+\begin{align}
+C^{(2)} &= \frac{1}{4} \sum_{pqrs}\sum_t :a_p^\dagger a_q^\dagger a_s a_r : \{ (1-P_{pq})A_{pt}B_{tqrs} -(1-P_{rs})A_{tr}B_{pqts}\} \\
+& \ \ \ + \frac{1}{4} \sum_{pqrs}\sum_t :a_p^\dagger a_q^\dagger a_s a_r : \{(1-P_{rs})B_{tr}A_{pqts} -  (1-P_{pq})B_{pt}A_{tqrs}\}\\
+& \ \ \ + \frac{1}{4} \sum_{pqrs}\sum_{tu} :a_p^\dagger a_q^\dagger a_s a_r : \Big\{ \frac{1}{2} (A_{pqtu}B_{turs}-B_{pqtu}A_{turs})(1-n_t-n_u)\\ 
+& \ \ \  +  (n_t-n_u)(1-P_{ij})(1-P_{kl})A_{tpur}B_{uqts} \Big\},\\
+&= \frac{1}{4} \sum_{pqrs}\sum_t :a_p^\dagger a_q^\dagger a_s a_r : \{ (1-P_{pq})(A_{pt}B_{tqrs}-B_{pt}A_{tqrs}) -(1-P_{rs})(A_{tr}B_{pqts}-B_{tr}A_{pqts})\} \\
+& \ \ \ + \frac{1}{4} \sum_{pqrs}\sum_{tu} :a_p^\dagger a_q^\dagger a_s a_r : \Big\{ \frac{1}{2} (A_{pqtu}B_{turs}-B_{pqtu}A_{turs})(1-n_t-n_u)\\ 
+& \ \ \  +  (n_t-n_u)(1-P_{ij})(1-P_{kl})A_{tpur}B_{uqts} \Big\},\\
+&= \frac{1}{4} \sum_{pqrs} :a_p^\dagger a_q^\dagger a_s a_r : \Big\{ \sum_t  (1-P_{pq})(A_{pt}B_{tqrs}-B_{pt}A_{tqrs}) -(1-P_{rs})(A_{tr}B_{pqts}-B_{tr}A_{pqts}) \\
+& \ \ \ +  \sum_{tu} \big\{ \frac{1}{2}(A_{pqtu}B_{turs}-B_{pqtu}A_{turs})(1-n_t-n_u) +(n_t-n_u)(1-P_{pq})(1-P_{rs})A_{tpur}B_{uqts} \big\} \Big\},\\
+\end{align}
 
 
 

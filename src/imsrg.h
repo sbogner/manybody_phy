@@ -41,14 +41,11 @@ public:
 	ivec holes_, parts_;
 	ivec basis1B_, occ1B_;
 
-	vec prefactor_;
-
 	imat basis2B_, ph_basis2B_;
 	imat occ2B_1_, occ2B_2_, occ2B_3_, ph_occ2B_1_;
 
 	mat H1B_, H2B_, eta1B_, eta2B_; 
 	mat f_, df_, Gamma_, dGamma_;
-	mat Omega_, dOmega_;
 
 	map<irowvec,int,StateComparator> index2B_;
 	map<irowvec,int,StateComparator> ph_index2B_;
@@ -74,12 +71,27 @@ public:
 	void calc_derivatives();
 
 	void RK2_imsrg();
-	void euler_magnus();
-
 	void imsrg(vec snapshots, string filename);
-	double imsrg();             // returns E after flow
+	double imsrg(); // returns E
 
+
+	int Bmax_;
+	vec prefactor_;
+	mat H1B_initial_, H2B_initial_;
+	mat Omega0B_, Omega1B_, Omega2B_;
+	// check that Omega0B is zero, then remove
+
+
+	double factorial(int n);
+	double binomial_coeff(int n, int k);
+	void build_prefactors();
 	void commutator(mat A1B, mat A2B, mat B1B, mat B2B, double& C0B, mat& C1B, mat& C2B);
+	void nested_commutator(int n, mat A1B, mat A2B, double B0B, mat B1B, mat B2B, double& C0B, mat& C1B, mat& C2B);
+
+	void calc_dOmega();
+	void euler_magnus();
+	void magnus(vec snapshots, string filename);
+	double magnus(); // returns E
 };
 
 #endif

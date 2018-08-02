@@ -1,3 +1,5 @@
+// diagonalizes a matrix H using standard SRG and SRG w/ magnus expansion
+
 #ifndef SRG_H
 #define SRG_H
 
@@ -7,8 +9,6 @@
 #include <fstream>
 #include <iomanip>
 #include <armadillo>
-// diagonalizes a matrix H using standard SRG and SRG w/ magnus expansion
-
 #include "time.h"
 
 using namespace std;
