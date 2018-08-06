@@ -124,14 +124,14 @@ mat CSRG::dOmega_ds(){
 	get_eta();
 
 	// only one non-zero odd Bernoulli number
-	mat summand, sum = 0.5*nested_commutator(Omega_,eta_,1);
+	mat summand, sum = -0.5*nested_commutator(Omega_,eta_,1);
 
 	// even 
 	do{
 		summand = prefactor_(n)*nested_commutator(Omega_,eta_,n);
 		sum += summand;
 		n += 2;
-	}while((n < Bmax_));
+	}while(n < Bmax_);
 
 	return sum;
 }
@@ -179,7 +179,6 @@ void CSRG::RK4_magnus(){
 	k4 = ds_*dOmega_ds(); 
 
 	Omega_ = Omega+(k1+2.0*k2+2.0*k3+k4)/6.0;
-	H_ = expmat(Omega_)*H0_*expmat(-Omega_);
 }
 
 void CSRG::srg(vec snapshots, string filename){
@@ -236,6 +235,8 @@ void CSRG::magnus(vec snapshots, string filename){
 		// write snapshots to file
 		if(fabs(s-snapshots(k)) < 0.5*ds_){
 
+			H_ = expmat(Omega_)*H0_*expmat(-Omega_);
+
 			outfile << s << "\t" << offdiag_H() << "\t";
 
 			for(int i = 0; i < N_; ++i){
@@ -248,6 +249,8 @@ void CSRG::magnus(vec snapshots, string filename){
 			++k;
 		}
 	}
+
+	outfile.close();
 }
 
 mat CSRG::srg(){
@@ -287,10 +290,10 @@ int main(int argc, char *argv[]){
 	H0(4,4) = 8*d-g;
 	H0(5,5) = 10*d-g;
 
-	SRG pairing_model(H0, 6, 170, smax, ds);
+	CSRG pairing_model(H0, 6, 170, smax, ds);
 	vec snapshots = linspace<vec>(0.0, smax);
 	pairing_model.srg(snapshots, "pairing_srg.dat");
-	pairing_model.magnus(snapshots, "pairing_magnus.dat");
+	pairing_model.magnus(snapshots, "pairing_srg_magnus.dat");
 
 	return 0;
 }

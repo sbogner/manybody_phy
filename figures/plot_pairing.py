@@ -11,7 +11,7 @@ from matplotlib.ticker import ScalarFormatter
 
 
 srg = np.loadtxt("data/pairing_srg.dat",unpack=True)
-magnus = np.loadtxt("data/pairing_magnus.dat",unpack=True)
+magnus = np.loadtxt("data/pairing_srg_magnus.dat",unpack=True)
 
 plt.figure(figsize=(6,6))
 fig = plt.figure(1)

@@ -28,7 +28,7 @@ CIMSRG::CIMSRG(int dim1B, double d, double g, double smax, double ds, ivec holes
 	build_hamiltonian();
 	normal_order();
 
-	Bmax_ = 170;
+	max_ = 170;
 	Omega0B_ = 0.0;
 	Omega1B_.zeros(dim1B_,dim1B_);
 	Omega2B_.zeros(dim2B_,dim2B_);
@@ -135,7 +135,7 @@ void CIMSRG::build_occ1B(){
 	for(int i = 0; i < nholes_; ++i) occ1B_(holes_(i)) = 1;
 }
 
-// n_a - n_b
+// n_p - n_q
 void CIMSRG::build_occ2B_1(){
 
 	occ2B_1_.zeros(dim2B_,dim2B_);
@@ -144,7 +144,7 @@ void CIMSRG::build_occ2B_1(){
 	}
 }
 
-// 1 - n_a - n_b
+// 1 - n_p - n_q
 void CIMSRG::build_occ2B_2(){
 
 	occ2B_2_.zeros(dim2B_,dim2B_);
@@ -153,7 +153,7 @@ void CIMSRG::build_occ2B_2(){
 	}	
 }
 
-// n_a * n_b
+// n_p * n_q
 void CIMSRG::build_occ2B_3(){
 
 	occ2B_3_.zeros(dim2B_,dim2B_);
@@ -205,10 +205,6 @@ void CIMSRG::build_hamiltonian(){
 			}
 		}
 	}
-
-	// store initial hamiltonian
-	H1B_initial_ = H1B_;
-	H2B_initial_ = H2B_;
 }
 
 void CIMSRG::normal_order(){
@@ -216,29 +212,29 @@ void CIMSRG::normal_order(){
 	int index1, index2;
 
 	// zero-body
-	E_ = 0.0;
+	E_i_ = 0.0;
 	for(int i = 0; i < nholes_; ++i){
-		E_ += H1B_(holes_(i),holes_(i));
+		E_i_ += H1B_(holes_(i),holes_(i));
 		for(int j = 0; j < nholes_; ++j){
 			index1 = index2B_[{holes_(i),holes_(j)}];
-			E_ += 0.5*H2B_(index1,index1);
+			E_i_ += 0.5*H2B_(index1,index1);
 		}
 	}
 
 	// one-body
-	f_ = H1B_;
+	f_i_ = H1B_;
 	for(int p = 0; p < dim1B_; ++p){
 		for(int q = 0; q < dim1B_; ++q){
 			for(int i = 0; i < nholes_; ++i){
 				index1 = index2B_[{p,holes_(i)}];
 				index2 = index2B_[{q,holes_(i)}];
-				f_(p,q) += H2B_(index1,index2);
+				f_i_(p,q) += H2B_(index1,index2);
 			}
 		}
 	}
 
 	// two-body
-	Gamma_ = H2B_;
+	Gamma_i_ = H2B_;
 }
 
 double CIMSRG::fod_norm(){
@@ -361,10 +357,11 @@ void CIMSRG::calc_eta_wegner(){
 	}
 	Gammad = Gamma_-Gammaod;
 
-	// 1B-1B interaction
+	// ONE-BODY PART
+	// 1B-1B (checked)
 	eta1B_ = commutator(fd, fod);
 
-	// 1B-2B interaction
+	// 1B-2B (checked)
 	for(int p = 0; p < dim1B_; ++p){
 		for(int q = 0; q < dim1B_; ++q){
 			for(int i = 0; i < nholes_; ++i){
@@ -384,7 +381,7 @@ void CIMSRG::calc_eta_wegner(){
 		}
 	}
 
-	// 2B-2B interaction
+	// 2B-2B
 	GammaGamma = Gammad*occ2B_2_*Gammaod;
 	GammaGammaT = GammaGamma.t();
 	for(int p = 0; p < dim1B_; ++p){
@@ -394,7 +391,7 @@ void CIMSRG::calc_eta_wegner(){
 				index1 = index2B_[{holes_(i),p}];
 				index2 = index2B_[{holes_(i),q}];
 
-				eta1B_(p,q) += 0.5*(GammaGamma(index1,index2)-GammaGammaT(index1,index2));
+				eta1B_(p,q) += 0.5*(GammaGamma(index1,index2)+GammaGammaT(index1,index2));
 			}
 		}
 	}
@@ -408,11 +405,12 @@ void CIMSRG::calc_eta_wegner(){
 				index1 = index2B_[{r,p}];
 				index2 = index2B_[{r,q}];
 
-				eta1B_(p,q) += 0.5*(GammaGamma(index1,index2)-GammaGammaT(index1,index2));
+				eta1B_(p,q) += 0.5*(GammaGamma(index1,index2)+GammaGammaT(index1,index2));
 			}
 		}
 	}
 
+	// TWO-BODY PART
 	// 1B-2B interaction
 	eta2B_.zeros(size(Gamma_));
 	for(int p = 0; p < dim1B_; ++p){
@@ -426,26 +424,26 @@ void CIMSRG::calc_eta_wegner(){
 					for(int t = 0; t < dim1B_; ++t){
 
 						index3 = index2B_[{t,q}];
-						eta2B_(index1,index2) += (fd(p,t)*Gammaod(index3,index2)-fod(p,t)*Gammad(index3,index2));
+						eta2B_(index1,index2) += 0.25*(fd(p,t)*Gammaod(index3,index2)-fod(p,t)*Gammad(index3,index2));
 						
 						index3 = index2B_[{p,t}];
-						eta2B_(index1,index2) += (fd(q,t)*Gammaod(index3,index2)-fod(p,t)*Gammad(index3,index2));					
+						eta2B_(index1,index2) -= 0.25*(fd(q,t)*Gammaod(index3,index2)-fod(p,t)*Gammad(index3,index2));					
 
 						index3 = index2B_[{t,s}];
-						eta2B_(index1,index2) += (fod(t,r)*Gammad(index1,index3)-fd(t,r)*Gammaod(index1,index3));	
+						eta2B_(index1,index2) -= 0.25*(fd(t,r)*Gammaod(index1,index3)-fod(t,r)*Gammad(index1,index3));	
 
-						index3 = index2B_[{r,t}];
-						eta2B_(index1,index2) += (fod(t,s)*Gammad(index1,index3)-fd(t,s)*Gammaod(index1,index3));	
+						index3 = index2B_[{t,r}];
+						eta2B_(index1,index2) += 0.25*(fd(t,s)*Gammaod(index1,index3)-fod(t,s)*Gammad(index1,index3));	
 					}
 				}
 			}
 		}
 	}
 
-	// 2B-2B interaction
+	// 2B-2B interaction (factor 1/4 missing and transpose sign)
 	GammaGamma = Gammad*occ2B_2_*Gammaod;
 	GammaGammaT = GammaGamma.t();
-	eta2B_ += 0.5*(GammaGamma-GammaGammaT);
+	eta2B_ += 0.125*(GammaGamma+GammaGammaT);
 
 	// transform to particle-hole representation
 	ph_Gammad = ph_transform2B(Gammad);
@@ -472,7 +470,7 @@ void CIMSRG::calc_eta_wegner(){
 				          -GammaGamma(p,q)-GammaGamma(index2B_[{j,i}],index2B_[{l,k}]));
 		}
 	}
-	GammaGamma = work;
+	GammaGamma = 0.25*work;
 	eta2B_ += GammaGamma;
 }
 
@@ -661,6 +659,11 @@ void CIMSRG::imsrg(vec snapshots, string filename){
 
 	int k = 0;
 
+	// initial values
+	E_ = E_i_;
+	f_ = f_i_;
+	Gamma_ = Gamma_i_;
+
 	ofstream outfile;
 	outfile.open(filename);
 	outfile << "# energy spacing = " << d_ << endl;
@@ -683,30 +686,43 @@ void CIMSRG::imsrg(vec snapshots, string filename){
 
 double CIMSRG::imsrg(){
 
+	// initial values
+	E_ = E_i_;
+	f_ = f_i_;
+	Gamma_ = Gamma_i_;
+
 	for(double s = 0; s <= smax_; s += ds_) RK2_imsrg();
 	return E_;
 }
 
 
-void CSRG::get_prefactors(){
 
-	prefactor_.set_size(Bmax_);
-	vec B(Bmax_);
+
+
+void CIMSRG::build_prefactors(){
+
+	// store factorial values
+	factorial_.set_size(max_);
+	for(int n = 0; n < max_; ++n) factorial_(n) = factorial(n);
+
+	// store Bernoulli numbers
+	vec B(max_);
 	B(0) = 1.0;
 
 	// set all odd Bernoulli numbers
-	B(1) = -0.5; for(int n = 3; n < Bmax_; ++n) B(n) = 0.0;
+	B(1) = -0.5; 
+	for(int n = 3; n < max_; n += 2) B(n) = 0.0;
 
 	// use recursive relation to calculate even Bernoulli numbers
-	for(int n = 2; n < Bmax_; n += 2){
+	for(int n = 2; n < max_; n += 2){
 		B(n) = 0.0;
 		for(int k = 0; k < n; ++k) B(n) -= binomial_coeff(n+1,k)*B(k)/(n+1);
 	}
-
+	
 	// calculate prefactors
-	for(int n = 0; n < Bmax_; ++n) prefactor_(n) = B(n)/factorial(n);
+	prefactor_.set_size(max_);
+	for(int n = 0; n < max_; ++n) prefactor_(n) = B(n)/factorial_(n);
 }
-
 
 double CIMSRG::factorial(int n){
 
@@ -723,7 +739,6 @@ double CIMSRG::binomial_coeff(int n, int k){
 	return factorial(n)/(factorial(k)*factorial(n-k));
 }
 
-
 void CIMSRG::commutator(mat A1B, mat A2B, mat B1B, mat B2B, double& C0B, mat& C1B, mat& C2B){
 
 	int index1, index2, index3;
@@ -731,14 +746,14 @@ void CIMSRG::commutator(mat A1B, mat A2B, mat B1B, mat B2B, double& C0B, mat& C1
 	// ZERO-BODY PART
 	C0B = 0.0;
 
-	// 1B-1B
+	// 1B-1B (checked)
 	for(int i = 0; i < nholes_; ++i){
 		for(int a = 0; a < nparts_; ++a){
 			C0B += (A1B(holes_(i),parts_(a))*B1B(parts_(a),holes_(i))-A1B(parts_(a),holes_(i))*B1B(holes_(i),parts_(a)));
 		}
 	}
 
-	// 2B-2B
+	// 2B-2B (checked)
 	for(int i = 0; i < nholes_; ++i){
 		for(int j = 0; j < nholes_; ++j){
 			for(int a = 0; a < nparts_; ++a){
@@ -753,12 +768,11 @@ void CIMSRG::commutator(mat A1B, mat A2B, mat B1B, mat B2B, double& C0B, mat& C1
 		}
 	}
 
-
 	// ONE-BODY PART
-	// 1B-1B
+	// 1B-1B (checked)
 	C1B = commutator(A1B,B1B);
 
-	// 1B-2B
+	// 1B-2B (checked)
 	for(int p = 0; p < dim1B_; ++p){
 		for(int q = 0; q < dim1B_; ++q){
 			for(int i = 0; i < nholes_; ++i){
@@ -778,17 +792,17 @@ void CIMSRG::commutator(mat A1B, mat A2B, mat B1B, mat B2B, double& C0B, mat& C1
 		}
 	}
 
-	// 2B-2B
+	// 2B-2B (checked)
 	mat AB = A2B*occ2B_2_*B2B;
 	mat ABT = AB.t();
 	for(int p = 0; p < dim1B_; ++p){
 		for(int q = 0; q < dim1B_; ++q){
 			for(int i = 0; i < nholes_; ++i){
 
-				index1 = index2B_[{i,p}];
-				index2 = index2B_[{i,q}];	
+				index1 = index2B_[{holes_(i),p}];
+				index2 = index2B_[{holes_(i),q}];	
 
-				C1B(p,q) += 0.5*(AB(index1,index2)-ABT(index1,index2));		
+				C1B(p,q) += 0.5*(AB(index1,index2)+ABT(index1,index2));		
 			}
 		}
 	}
@@ -808,7 +822,7 @@ void CIMSRG::commutator(mat A1B, mat A2B, mat B1B, mat B2B, double& C0B, mat& C1
 	}
 
 	// TWO-BODY PART
-	// 1B-1B
+	// 1B-2B (checked, factor of 1/4 was missing)
 	C2B = zeros<mat>(size(A2B));
 	for(int p = 0; p < dim1B_; ++p){
 		for(int q = 0; q < dim1B_; ++q){
@@ -821,25 +835,25 @@ void CIMSRG::commutator(mat A1B, mat A2B, mat B1B, mat B2B, double& C0B, mat& C1
 					for(int t = 0; t < dim1B_; ++t){
 
 						index3 = index2B_[{t,q}];
-						C2B(index1,index2) += (A1B(p,t)*B2B(index3,index2)-B1B(p,t)*A2B(index3,index2));
+						C2B(index1,index2) += 0.25*(A1B(p,t)*B2B(index3,index2)-B1B(p,t)*A2B(index3,index2));
 
 						index3 = index2B_[{t,p}];
-						C2B(index1,index2) -= (A1B(q,t)*B2B(index3,index2)-B1B(q,t)*A2B(index3,index2));
+						C2B(index1,index2) -= 0.25*(A1B(q,t)*B2B(index3,index2)-B1B(q,t)*A2B(index3,index2));
 
 						index3 = index2B_[{t,s}];
-						C2B(index1,index2) -= (A1B(t,r)*B2B(index1,index3)-B1B(t,r)*A2B(index1,index3));					
+						C2B(index1,index2) -= 0.25*(A1B(t,r)*B2B(index1,index3)-B1B(t,r)*A2B(index1,index3));					
 
 						index3 = index2B_[{t,r}];
-						C2B(index1,index2) += (A1B(t,s)*B2B(index1,index3)-B1B(t,s)*A2B(index1,index3));
+						C2B(index1,index2) += 0.25*(A1B(t,s)*B2B(index1,index3)-B1B(t,s)*A2B(index1,index3));
 					}
 				}
 			}
 		}
 	}
 
-	// 2B-2B
+	// 2B-2B (checked, don't understand antisymm entirely)
 	AB = A2B*occ2B_2_*B2B;
-	dGamma_ += 0.5*(AB+AB.t());
+	C2B += 0.125*(AB+trans(AB));
 
 	// transform matrices to ph representation
 	mat ph_A = ph_transform2B(A2B);
@@ -867,26 +881,124 @@ void CIMSRG::commutator(mat A1B, mat A2B, mat B1B, mat B2B, double& C0B, mat& C1
 			work(p,q) += (AB(index1,q)+AB(p,index2)-AB(p,q)-AB(index1,index2));
 		}
 	}
-	AB = work;
+	AB = 0.25*work;
 	C2B += AB;
 }
 
-void CIMSRG::nested_commutator(int n, mat A1B, mat A2B, double B0B, mat B1B, mat B2B, double& C0B, mat& C1B, mat& C2B){
+void CIMSRG::calc_dOmega(){
 
-	if(n == 0){
-		C0B = B0B;
-		C1B = B1B;
-		C2B = B2B;
-	}
-	else{
-		
-		C0B = B0B;
-		C1B = B1B;
-		C2B = B2B;
+	cout << "calculating eta...";
+	calc_eta_wegner();
+	cout << " done" << endl;
 
-		for(int i = 0; i < n; ++i) commutator(A1B,A2B,C1B,C2B,C0B,C1B,C2B);
-	}
+	// for storing commutator outputs
+	double C0B;
+	mat C1B, C2B;
+
+	// k=0 term 
+	dOmega0B_ = 0.0;
+	dOmega1B_ = eta1B_;
+	dOmega2B_ = eta2B_;
+
+	eta1B_.print();
+
+	// only one non-zero odd Bernoulli number B(k=1) = -0.5
+	commutator(Omega1B_,Omega2B_,eta1B_,eta2B_,C0B,C1B,C2B);
+	dOmega0B_ += -0.5*C0B;
+	dOmega1B_ += -0.5*C1B;
+	dOmega2B_ += -0.5*C2B;
+
+
+	int k = 2;
+	do{
+		// calculate nested commutator
+		commutator(Omega1B_,Omega2B_,C1B,C2B,C0B,C1B,C2B);
+
+		// add remaining even terms
+		if(k%2 == 0){
+			dOmega0B_ += prefactor_(k)*C0B;
+			dOmega1B_ += prefactor_(k)*C1B;
+			dOmega2B_ += prefactor_(k)*C2B;			
+		}
+
+		cout << k << "\t" << C0B << endl;
+
+		k++;
+
+	}while(k < max_);
 }
+
+void CIMSRG::calc_hamiltonian(){
+
+	double C0B;
+	mat C1B, C2B;
+
+	// k=0 term
+	E_ = E_i_;
+	f_ = f_i_;
+	Gamma_ = Gamma_i_;
+
+	// k=1 term
+	commutator(Omega1B_,Omega2B_,f_i_,Gamma_i_,C0B,C1B,C2B);
+	E_ += -0.5*C0B;
+	f_ += -0.5*C1B;
+	Gamma_ += -0.5*C2B;
+
+	int k = 2;
+	do{
+		// calculate nested commutator
+		commutator(Omega1B_,Omega2B_,C1B,C2B,C0B,C1B,C2B);
+
+		// add remaining even terms
+		if(k%2 == 0){
+			E_ += C0B/factorial_(k);
+			f_ += C1B/factorial_(k);
+			Gamma_ += C2B/factorial_(k);			
+		}
+
+		k++;
+
+	}while(k < max_);
+}
+
+void CIMSRG::magnus(vec snapshots, string filename){
+
+	int k = 0;
+
+	// initial values
+	E_ = E_i_;
+	f_ = f_i_;
+	Gamma_ = Gamma_i_;
+
+	ofstream outfile;
+	outfile.open(filename);
+	outfile << "# energy spacing = " << d_ << endl;
+	outfile << "# interaction strength = " << g_ << endl;
+	outfile << "# flow parameter s, zero-body component E, f_od norm, Gamma_od norm" << endl;
+
+	for(double s = 0; s <= smax_; s += ds_){
+
+		printf("s = %8.3f \n", s);
+
+		// write snapshots to file
+		if(fabs(s-snapshots(k)) < 0.5*ds_){
+
+			calc_hamiltonian();
+			outfile << s << "\t" << E_ << "\t" << fod_norm() << "\t" << Gammaod_norm() << endl;
+			k++;
+		}
+
+
+		// forward euler
+		calc_dOmega();
+		Omega0B_ += ds_*dOmega0B_;
+		Omega1B_ += ds_*dOmega1B_;
+		Omega2B_ += ds_*dOmega2B_;
+	}
+
+	outfile.close();
+}
+
 
 
 int main(int argc, char *argv[]){
@@ -894,14 +1006,12 @@ int main(int argc, char *argv[]){
 	double d = atof(argv[1]);
 	double g = atof(argv[2]);
 	double smax = 10.0;
-	double ds = 0.001;
+	double ds = atof(argv[3]);
 
 	ivec holes = {0,1,2,3};
 	ivec parts = {4,5,6,7};
 	CIMSRG PairingModel(8, d, g, smax, ds, holes, parts);
-
-
-	/*
+	
 	vec snapshots(38);
 	snapshots(0) = 0.0;
 
@@ -915,7 +1025,8 @@ int main(int argc, char *argv[]){
 	snapshots(n) = smax;
 
 	PairingModel.imsrg(snapshots, "pairing_imsrg.dat");
-	*/
+	//PairingModel.magnus(snapshots, "pairing_imsrg_magnus.dat");
+	
 
 
 

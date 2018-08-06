@@ -3,7 +3,7 @@ CFLAGS = -std=c++11 -Wall
 LIB = -larmadillo
 
 
-all: IMSRG TEST
+all: IMSRG SRG TEST
 
 MBPT2: mbpt2.o solver.o system.o
 	${CC} ${CFLAGS} mbpt2.o system_tests.o system.o -o MBPT2

@@ -75,10 +75,12 @@ public:
 	double imsrg(); // returns E
 
 
-	int Bmax_;
-	vec prefactor_;
-	mat H1B_initial_, H2B_initial_;
+	int max_;
+	double E_i_;
+	vec prefactor_, factorial_;
+	mat f_i_, Gamma_i_;
 	mat Omega0B_, Omega1B_, Omega2B_;
+	mat dOmega0B_, dOmega1B_, dOmega2B_;
 	// check that Omega0B is zero, then remove
 
 
@@ -86,10 +88,9 @@ public:
 	double binomial_coeff(int n, int k);
 	void build_prefactors();
 	void commutator(mat A1B, mat A2B, mat B1B, mat B2B, double& C0B, mat& C1B, mat& C2B);
-	void nested_commutator(int n, mat A1B, mat A2B, double B0B, mat B1B, mat B2B, double& C0B, mat& C1B, mat& C2B);
 
 	void calc_dOmega();
-	void euler_magnus();
+	void calc_hamiltonian();
 	void magnus(vec snapshots, string filename);
 	double magnus(); // returns E
 };
