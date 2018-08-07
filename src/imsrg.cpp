@@ -940,9 +940,9 @@ void CIMSRG::calc_hamiltonian(){
 
 	// k=1 term
 	commutator(Omega1B_,Omega2B_,f_i_,Gamma_i_,C0B,C1B,C2B);
-	E_ += -0.5*C0B;
-	f_ += -0.5*C1B;
-	Gamma_ += -0.5*C2B;
+	E_ += C0B;
+	f_ += C1B;
+	Gamma_ += C2B;
 
 	int k = 2;
 	do{
