@@ -49,5 +49,6 @@ imsrg_tests.o: test/imsrg_tests.cpp
 clean: 
 	rm *.o
 	rm IMSRG
+	rm SRG
 	rm TEST
 
