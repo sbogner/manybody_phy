@@ -16,7 +16,7 @@ class IMSRG:
 		self.parts = particles
 		self.dim1B = len(holes)+len(particles)
 		self.dim2B = self.dim1B**2
-		self.tolerance = 10e-9
+		self.tolerance = 10e-8
 
 		# bases and indices
 		self.bas1B = [i for i in range(self.dim1B)]
@@ -202,14 +202,19 @@ class IMSRG:
 
 	def commutator2B(self, A1B, A2B, B1B, B2B):
 
+
 		# zero-body part
 		C0B = 0.0
-		sgn = 1.0	
+		sgn = 1.0
 
 		# check symmetry
+		if (np.allclose(A2B,-transpose(A2B)) and np.allclose(B2B,-transpose(B2B))):
+			sgn = -1.0
+
 		if (np.allclose(A2B,transpose(A2B)) and np.allclose(B2B,transpose(B2B))):
 			sgn = -1.0
 
+		# zero-body part is non-zero if A2B and B2B are NOT both symmetric
 		else:
 
 			# 1B-1B
@@ -218,13 +223,14 @@ class IMSRG:
 					C0B += (A1B[i,a]*B1B[a,i]-A1B[a,i]*B1B[i,a])
 
 			# 2B-2B
-			for i in self.holes:
-				for j in self.holes:
-					for a in self.parts:
-						for b in self.parts:
-							ij = self.idx2B[(i,j)]
-							ab = self.idx2B[(a,b)]
-							C0B += 0.5*A2B[ij,ab]*B2B[ab,ij]
+			if (sgn == 1.0):
+				for i in self.holes:
+					for j in self.holes:
+						for a in self.parts:
+							for b in self.parts:
+								ij = self.idx2B[(i,j)]
+								ab = self.idx2B[(a,b)]
+								C0B += 0.5*A2B[ij,ab]*B2B[ab,ij]
 
 
 		# one-body part
@@ -311,7 +317,7 @@ class IMSRG:
 
 	def calc_eta_wegner(self):
 
-		# print("calculating eta...")
+		#print("calculating eta...")
 
 		# split into diag and off-diag parts
 		fod = np.zeros_like(self.f)
@@ -336,6 +342,15 @@ class IMSRG:
 		eta0B, self.eta1B, self.eta2B = self.commutator2B(fd,Gammad,fod,Gammaod)
 
 
+
+	def calc_dH(self):
+
+		# print("calculating dE, df, dGamma...")
+
+		self.dE, self.df, self.dGamma = self.commutator2B(self.eta1B,self.eta2B,self.f,self.Gamma)
+
+
+
 	def derivative(self,t,y):
 
 		# get hamiltonian from linear array y
@@ -350,7 +365,7 @@ class IMSRG:
 
 		# calculate rhs
 		self.calc_eta_wegner()
-		self.dE, self.df, self.dGamma = self.commutator2B(self.eta1B,self.eta2B,self.f,self.Gamma)
+		self.calc_dH()
 
 		# reshape into linear array
 		dy = np.append([self.dE],np.append(reshape(self.df,-1),reshape(self.dGamma,-1)))
@@ -364,7 +379,7 @@ class IMSRG:
 		y0 = np.append([self.E0],np.append(reshape(self.f0,-1),reshape(self.Gamma0,-1)))
 		self.E, self.f, self.Gamma = self.E0, self.f0, self.Gamma0
 		self.calc_eta_wegner()
-		self.dE, self.df, self.dGamma = self.commutator2B(self.eta1B,self.eta2B,self.f,self.Gamma)
+		self.calc_dH()
 
 		# integrate
 		solver = ode(self.derivative,jac=None)
@@ -374,8 +389,9 @@ class IMSRG:
 		while solver.successful() and solver.t < self.smax:
 			print("s = {0:5.3f}   E = {1:10.8f}   dE = {2:10.8f}".format(solver.t,self.E,self.dE))
 			ys = solver.integrate(self.smax, step=True)
-			if(abs(self.dE/self.E) < self.tolerance): break
 			solver.integrate(solver.t+self.ds)
+			if(abs(self.dE/self.E) < self.tolerance): break
+
 		
 
 
@@ -426,7 +442,7 @@ class IMSRG:
 
 	def calc_dOmega(self):
 
-		# print("calculating dOmega...")
+		#print("calculating dOmega...")
 
 		# k=0 term
 		self.dOmega1B = self.eta1B
@@ -449,7 +465,7 @@ class IMSRG:
 
 	def calc_hamiltonian(self):
 
-		# print("calculating E, f, Gamma...")
+		#print("calculating E, f, Gamma...")
 
 		# k=0 term
 		self.E = self.E0
@@ -472,6 +488,17 @@ class IMSRG:
 			k += 1
 
 
+	def Gammaod_norm(self):
+
+		norm = 0.0
+		for a in self.parts:
+			for b in self.parts:
+				for i in self.holes:
+					for j in self.holes:
+						norm += self.Gamma[self.idx2B[(a,b)],self.idx2B[(i,j)]]**2 + self.Gamma[self.idx2B[(i,j)],self.idx2B[a,b]]**2
+
+		return np.sqrt(norm)
+
 
 	def derivative_magnus(self,t,y):
 
@@ -492,7 +519,6 @@ class IMSRG:
 		return dy
 
 
-
 	def magnus(self):
 
 		# initial Omega
@@ -503,7 +529,7 @@ class IMSRG:
 		# initial hamiltonian
 		self.E, self.f, self.Gamma = self.E0, self.f0, self.Gamma0
 		self.calc_eta_wegner()
-		self.dE, self.df, self.dGamma = self.commutator2B(self.eta1B,self.eta2B,self.f,self.Gamma)
+		self.calc_dH()
 
 		# integrate
 		solver = ode(self.derivative_magnus,jac=None)
@@ -511,26 +537,27 @@ class IMSRG:
 		solver.set_initial_value(y0, 0.0)
 
 		while solver.successful() and solver.t < self.smax:
-			print("s = {0:5.3f}   E = {1:10.8f}   dE = {2:10.8f}".format(solver.t,self.E,self.dE))
+
+			#print("s = {0:5.3f}   E = {1:10.8f}   dE = {2:10.8f}   Gammaod_norm = {3:10.8f}".format(solver.t,self.E,self.dE,self.Gammaod_norm()))
+			#print("s = {0:5.3f} Omega2B = {1:5.3f} Gamma = {2:5.3f} eta2B = {3:5.3f}".format(solver.t,linalg.norm(self.Omega2B+transpose(self.Omega2B)),linalg.norm(self.Gamma-transpose(self.Gamma)),linalg.norm(self.eta2B+transpose(self.eta2B))))
 			ys = solver.integrate(self.smax, step=True)
-			if(abs(self.dE/self.E) < self.tolerance): break
 			solver.integrate(solver.t+self.ds)
+			if(abs(self.dE/self.E) < self.tolerance): break
 			self.calc_hamiltonian()
-			self.dE, self.df, self.dGamma = self.commutator2B(self.eta1B,self.eta2B,self.f,self.Gamma)
-			#print(linalg.norm(self.eta1B),linalg.norm(self.eta2B),linalg.norm(self.f),linalg.norm(self.Gamma))
+			self.calc_eta_wegner()
+			self.calc_dH()
 
 
 
-
-
-
+########################
+##### MAIN PROGRAM #####
+########################
 
 
 holes = [0,1,2,3]
 particles = [4,5,6,7]
 
-PairingModel = IMSRG(1.0,0.5,10.0,0.1,holes,particles)
+PairingModel = IMSRG(1.0,0.5,10.0,0.01,holes,particles)
 #PairingModel.imsrg()
 PairingModel.magnus()
-
 
