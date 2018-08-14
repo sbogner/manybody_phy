@@ -342,7 +342,6 @@ class IMSRG:
 		eta0B, self.eta1B, self.eta2B = self.commutator2B(fd,Gammad,fod,Gammaod)
 
 
-
 	def calc_dH(self):
 
 		# print("calculating dE, df, dGamma...")
@@ -387,7 +386,7 @@ class IMSRG:
 		solver.set_initial_value(y0, 0.0)
 
 		while solver.successful() and solver.t < self.smax:
-			print("s = {0:5.3f}   E = {1:10.8f}   dE = {2:10.8f}".format(solver.t,self.E,self.dE))
+			print("s = {0:6.5f}   E = {1:10.8f}   dE = {2:10.8f}".format(solver.t,self.E,self.dE))
 			ys = solver.integrate(self.smax, step=True)
 			solver.integrate(solver.t+self.ds)
 			if(abs(self.dE/self.E) < self.tolerance): break
@@ -437,7 +436,6 @@ class IMSRG:
 		self.prefactors = []
 		for n in range(self.max):
 			self.prefactors.append(B[n]/self.factorials[n])
-		
 
 
 	def calc_dOmega(self):
@@ -448,6 +446,7 @@ class IMSRG:
 		self.dOmega1B = self.eta1B
 		self.dOmega2B = self.eta2B
 
+		'''
 		# k=1 term (only odd term)
 		C0B, C1B, C2B = self.commutator2B(self.Omega1B,self.Omega2B,self.eta1B,self.eta2B)
 		self.dOmega1B += self.prefactors[1]*C1B
@@ -455,15 +454,16 @@ class IMSRG:
 
 		# remaining even terms
 		k = 2
-		while (k < self.max and self.prefactors[k]*linalg.norm(C1B) > self.tolerance):
+		while (k < self.max and linalg.norm(C2B) > self.tolerance):
 			C0B, C1B, C2B = self.commutator2B(self.Omega1B,self.Omega2B,C1B,C2B)
 			if(k%2 == 0):
 				self.dOmega1B += self.prefactors[k]*C1B
 				self.dOmega2B += self.prefactors[k]*C2B	
 			k += 1
+		'''
 
 
-	def calc_hamiltonian(self):
+	def calc_H(self):
 
 		#print("calculating E, f, Gamma...")
 
@@ -480,12 +480,24 @@ class IMSRG:
 
 		# remaining even terms
 		k = 2
-		while (k < self.max and linalg.norm(C1B) > self.tolerance):
+		while (k < self.max and linalg.norm(C2B) > self.tolerance):
 			C0B, C1B, C2B = self.commutator2B(self.Omega1B,self.Omega2B,C1B,C2B)
 			self.E += C0B/self.factorials[k]
 			self.f += C1B/self.factorials[k]
 			self.Gamma += C2B/self.factorials[k]
 			k += 1
+		
+
+
+	def fod_norm(self):
+
+		norm = 0.0
+		for a in self.parts:
+			for i in self.holes:
+				norm += self.f[a,i]**2+self.f[i,a]**2
+
+		return np.sqrt(norm)
+
 
 
 	def Gammaod_norm(self):
@@ -530,7 +542,9 @@ class IMSRG:
 		self.E, self.f, self.Gamma = self.E0, self.f0, self.Gamma0
 		self.calc_eta_wegner()
 		self.calc_dH()
+		self.calc_dOmega()
 
+		'''
 		# integrate
 		solver = ode(self.derivative_magnus,jac=None)
 		solver.set_integrator('vode', method='bdf', order=4, nsteps=1000)
@@ -538,14 +552,29 @@ class IMSRG:
 
 		while solver.successful() and solver.t < self.smax:
 
-			#print("s = {0:5.3f}   E = {1:10.8f}   dE = {2:10.8f}   Gammaod_norm = {3:10.8f}".format(solver.t,self.E,self.dE,self.Gammaod_norm()))
+			print("s = {0:5.3f}  E = {1:8.6f}  dE = {2:8.6f}  ||fod|| = {3:8.6f}  ||Gammaod|| = {4:8.6f}  ||eta1B|| = {5:8.6f}  ||eta2B|| = {6:8.6f}".format(solver.t,self.E,self.dE,self.fod_norm(),self.Gammaod_norm(),linalg.norm(self.eta1B),linalg.norm(self.eta2B)))
 			#print("s = {0:5.3f} Omega2B = {1:5.3f} Gamma = {2:5.3f} eta2B = {3:5.3f}".format(solver.t,linalg.norm(self.Omega2B+transpose(self.Omega2B)),linalg.norm(self.Gamma-transpose(self.Gamma)),linalg.norm(self.eta2B+transpose(self.eta2B))))
 			ys = solver.integrate(self.smax, step=True)
 			solver.integrate(solver.t+self.ds)
 			if(abs(self.dE/self.E) < self.tolerance): break
-			self.calc_hamiltonian()
+			self.calc_H()
 			self.calc_eta_wegner()
 			self.calc_dH()
+		'''
+
+		# forward euler
+		s = 0.0
+		while s < self.smax:
+			print("s = {0:5.3f}  E = {1:8.6f}  dE = {2:8.6f}  ||fod|| = {3:8.6f}  ||Gammaod|| = {4:8.6f}  ||eta1B|| = {5:8.6f}  ||eta2B|| = {6:8.6f}".format(s,self.E,self.dE,self.fod_norm(),self.Gammaod_norm(),linalg.norm(self.eta1B),linalg.norm(self.eta2B)))
+			#print("s = {0:5.3f}  ||Omega2B|| = {1:8.6f}  ||dOmega2B|| = {2:8.6f}  ||Gammaod|| = {3:8.6f}  ||eta2B|| = {4:8.6f}".format(s,linalg.norm(self.Omega2B),linalg.norm(self.dOmega2B),self.Gammaod_norm(),linalg.norm(self.eta2B)))
+			#print("s = {0:5.3f} Omega2B = {1:5.3f} Gamma = {2:5.3f} eta2B = {3:5.3f}".format(s,linalg.norm(self.Omega2B+transpose(self.Omega2B)),linalg.norm(self.Gamma-transpose(self.Gamma)),linalg.norm(self.eta2B+transpose(self.eta2B))))
+			self.calc_eta_wegner()
+			self.calc_dOmega()
+			self.Omega1B += self.ds*self.dOmega1B
+			self.Omega2B += self.ds*self.dOmega2B
+			self.calc_H()
+			self.calc_dH()
+			s += self.ds
 
 
 
@@ -557,7 +586,7 @@ class IMSRG:
 holes = [0,1,2,3]
 particles = [4,5,6,7]
 
-PairingModel = IMSRG(1.0,0.5,10.0,0.01,holes,particles)
-#PairingModel.imsrg()
-PairingModel.magnus()
+PairingModel = IMSRG(1.0,0.5,10.0,0.000001,holes,particles)
+PairingModel.imsrg()
+#PairingModel.magnus()
 
