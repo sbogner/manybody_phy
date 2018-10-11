@@ -4,6 +4,7 @@ from scipy.linalg import eigvalsh
 from scipy.integrate import odeint, ode
 from sys import argv
 
+
 class IMSRG:
 
 	def __init__(self, d, g, smax, ds, holes, particles):
@@ -34,7 +35,6 @@ class IMSRG:
 		# magnus expansion
 		self.max = 170
 		self.build_prefactors()
-
 
 
 	########################
@@ -200,121 +200,6 @@ class IMSRG:
 		return dot(A,B)-dot(B,A)
 
 
-	def commutator2B(self, A1B, A2B, B1B, B2B):
-
-
-		# zero-body part
-		C0B = 0.0
-		sgn = 1.0
-
-		# check symmetry
-		if (np.allclose(A2B,-transpose(A2B)) and np.allclose(B2B,-transpose(B2B))):
-			sgn = -1.0
-
-		if (np.allclose(A2B,transpose(A2B)) and np.allclose(B2B,transpose(B2B))):
-			sgn = -1.0
-
-		# zero-body part is non-zero if A2B and B2B are NOT both symmetric
-		else:
-
-			# 1B-1B
-			for i in self.holes:
-				for a in self.parts:
-					C0B += (A1B[i,a]*B1B[a,i]-A1B[a,i]*B1B[i,a])
-
-			# 2B-2B
-			if (sgn == 1.0):
-				for i in self.holes:
-					for j in self.holes:
-						for a in self.parts:
-							for b in self.parts:
-								ij = self.idx2B[(i,j)]
-								ab = self.idx2B[(a,b)]
-								C0B += 0.5*A2B[ij,ab]*B2B[ab,ij]
-
-
-		# one-body part
-		# 1B-1B
-		C1B = self.commutator(A1B,B1B)
-
-		# 1B-2B
-		for p in range(self.dim1B):
-			for q in range(self.dim1B):
-				for i in self.holes:
-					for a in self.parts:
-						ap = self.idx2B[(a,p)]
-						iq = self.idx2B[(i,q)]
-						ip = self.idx2B[(i,p)]
-						aq = self.idx2B[(a,q)]
-						C1B[p,q] += (A1B[i,a]*B2B[ap,iq]-B1B[i,a]*A2B[ap,iq]
-							        +B1B[a,i]*A2B[ip,aq]-A1B[a,i]*B2B[ip,aq])
-
-		# 2B-2B
-		AB = dot(A2B,dot(self.occ2B_B,B2B))
-		ABT = transpose(AB)
-		for p in range(self.dim1B):
-			for q in range(self.dim1B):
-				for i in self.holes:
-					ip = self.idx2B[(i,p)]
-					iq = self.idx2B[(i,q)]
-					C1B[p,q] += 0.5*(AB[ip,iq]+sgn*ABT[ip,iq])
-
-		AB = dot(A2B,dot(self.occ2B_C,B2B))
-		ABT = transpose(AB)
-		for p in range(self.dim1B):
-			for q in range(self.dim1B):
-				for r in range(self.dim1B):
-					rp = self.idx2B[(r,p)]
-					rq = self.idx2B[(r,q)]
-					C1B[p,q] += 0.5*(AB[rp,rq]+sgn*ABT[rp,rq])
-
-
-		# two-body part
-		C2B = np.zeros((self.dim2B,self.dim2B))
-
-		# 1B-2B
-		for p in range(self.dim1B):
-			for q in range(self.dim1B):
-				for r in range(self.dim1B):
-					for s in range(self.dim1B):
-						pq = self.idx2B[(p,q)]
-						rs = self.idx2B[(r,s)]
-						for t in range(self.dim1B):
-							tq = self.idx2B[(t,q)]
-							tp = self.idx2B[(t,p)]
-							ts = self.idx2B[(t,s)]
-							tr = self.idx2B[(t,r)]
-							C2B[pq,rs] += (A1B[p,t]*B2B[tq,rs]-B1B[p,t]*A2B[tq,rs]
-							              -A1B[q,t]*B2B[tp,rs]+B1B[q,t]*A2B[tp,rs]
-							              -A1B[t,r]*B2B[pq,ts]+B1B[t,r]*A2B[pq,ts]
-							              +A1B[t,s]*B2B[pq,tr]-B1B[t,s]*A2B[pq,tr])
-
-		# 2B-2B
-		AB = dot(A2B,dot(self.occ2B_B,B2B))
-		ABT = transpose(AB)
-		C2B += 0.5*(AB+sgn*ABT)
-
-		# transform to particle-hole representation
-		ph_A = self.ph_transform2B(A2B)
-		ph_B = self.ph_transform2B(B2B)
-		ph_AB = dot(ph_A,dot(self.ph_occ2B_A,ph_B))
-
-		# transform back
-		AB = self.inverse_ph_transform2B(ph_AB)
-
-		# antisymmetrization
-		asymm_AB = np.zeros_like(AB)
-		for pq, (p,q) in enumerate(self.bas2B):
-			qp = self.idx2B[(q,p)]
-			for rs, (r,s) in enumerate(self.bas2B):
-				sr = self.idx2B[(s,r)]
-				asymm_AB[pq,rs] += (AB[pq,sr]+AB[qp,rs]-AB[pq,rs]-AB[qp,sr])
-		AB = asymm_AB
-		C2B += AB
-
-		return C0B, C1B, C2B
-
-
 	def calc_eta_wegner(self):
 
 		#print("calculating eta...")
@@ -438,6 +323,127 @@ class IMSRG:
 			self.prefactors.append(B[n]/self.factorials[n])
 
 
+	def commutator2B(self, A1B, A2B, B1B, B2B):
+
+
+		# zero-body part
+		C0B = 0.0
+		sgn = 1.0
+
+		# check symmetry
+		if (np.allclose(A2B,-transpose(A2B)) and np.allclose(B2B,-transpose(B2B))):
+			sgn = -1.0
+
+		if (np.allclose(A2B,transpose(A2B)) and np.allclose(B2B,transpose(B2B))):
+			sgn = -1.0
+
+		# zero-body part is non-zero if one is symmetric and other is antisymmetric
+		if sgn == 1.0:
+
+			# 1B-1B
+			for i in self.holes:
+				for a in self.parts:
+					C0B += (A1B[i,a]*B1B[a,i]-A1B[a,i]*B1B[i,a])
+
+			# 2B-2B
+			if (sgn == 1.0):
+				for i in self.holes:
+					for j in self.holes:
+						for a in self.parts:
+							for b in self.parts:
+								ij = self.idx2B[(i,j)]
+								ab = self.idx2B[(a,b)]
+								C0B += 0.5*A2B[ij,ab]*B2B[ab,ij]
+
+
+		# one-body part
+		# 1B-1B
+		C1B = self.commutator(A1B,B1B)
+
+		# 1B-2B
+		for p in range(self.dim1B):
+			for q in range(self.dim1B):
+				for i in self.holes:
+					for a in self.parts:
+						ap = self.idx2B[(a,p)]
+						iq = self.idx2B[(i,q)]
+						ip = self.idx2B[(i,p)]
+						aq = self.idx2B[(a,q)]
+						C1B[p,q] += (A1B[i,a]*B2B[ap,iq]-B1B[i,a]*A2B[ap,iq]
+							        +B1B[a,i]*A2B[ip,aq]-A1B[a,i]*B2B[ip,aq])
+
+		# 2B-2B
+
+		#### CHECK THESE SGN !!!!!!!!! ####
+		AB = dot(A2B,dot(self.occ2B_B,B2B))
+		ABT = transpose(AB)
+		for p in range(self.dim1B):
+			for q in range(self.dim1B):
+				for i in self.holes:
+					ip = self.idx2B[(i,p)]
+					iq = self.idx2B[(i,q)]
+					C1B[p,q] += 0.5*(AB[ip,iq]+sgn*ABT[ip,iq])
+
+		AB = dot(A2B,dot(self.occ2B_C,B2B))
+		ABT = transpose(AB)
+		for p in range(self.dim1B):
+			for q in range(self.dim1B):
+				for r in range(self.dim1B):
+					rp = self.idx2B[(r,p)]
+					rq = self.idx2B[(r,q)]
+					C1B[p,q] += 0.5*(AB[rp,rq]+sgn*ABT[rp,rq])
+
+
+		# two-body part
+		C2B = np.zeros((self.dim2B,self.dim2B))
+
+		# 1B-2B
+		for p in range(self.dim1B):
+			for q in range(self.dim1B):
+				for r in range(self.dim1B):
+					for s in range(self.dim1B):
+						pq = self.idx2B[(p,q)]
+						rs = self.idx2B[(r,s)]
+						for t in range(self.dim1B):
+							tq = self.idx2B[(t,q)]
+							tp = self.idx2B[(t,p)]
+							ts = self.idx2B[(t,s)]
+							tr = self.idx2B[(t,r)]
+							C2B[pq,rs] += (A1B[p,t]*B2B[tq,rs]-B1B[p,t]*A2B[tq,rs]
+							              -A1B[q,t]*B2B[tp,rs]+B1B[q,t]*A2B[tp,rs]
+							              -A1B[t,r]*B2B[pq,ts]+B1B[t,r]*A2B[pq,ts]
+							              +A1B[t,s]*B2B[pq,tr]-B1B[t,s]*A2B[pq,tr])
+
+		# 2B-2B
+
+		#### CHECK THESE SGN !!!!!!!!! ####
+
+		
+		AB = dot(A2B,dot(self.occ2B_B,B2B))
+		ABT = transpose(AB)
+		C2B += 0.5*(AB+sgn*ABT)
+
+		# transform to particle-hole representation
+		ph_A = self.ph_transform2B(A2B)
+		ph_B = self.ph_transform2B(B2B)
+		ph_AB = dot(ph_A,dot(self.ph_occ2B_A,ph_B))
+
+		# transform back
+		AB = self.inverse_ph_transform2B(ph_AB)
+
+		# antisymmetrization
+		asymm_AB = np.zeros_like(AB)
+		for pq, (p,q) in enumerate(self.bas2B):
+			qp = self.idx2B[(q,p)]
+			for rs, (r,s) in enumerate(self.bas2B):
+				sr = self.idx2B[(s,r)]
+				asymm_AB[pq,rs] += (AB[pq,sr]+AB[qp,rs]-AB[pq,rs]-AB[qp,sr])
+		AB = asymm_AB
+		C2B += AB
+
+		return C0B, C1B, C2B	
+
+
 	def calc_dOmega(self):
 
 		#print("calculating dOmega...")
@@ -446,7 +452,6 @@ class IMSRG:
 		self.dOmega1B = self.eta1B
 		self.dOmega2B = self.eta2B
 
-		'''
 		# k=1 term (only odd term)
 		C0B, C1B, C2B = self.commutator2B(self.Omega1B,self.Omega2B,self.eta1B,self.eta2B)
 		self.dOmega1B += self.prefactors[1]*C1B
@@ -455,12 +460,13 @@ class IMSRG:
 		# remaining even terms
 		k = 2
 		while (k < self.max and linalg.norm(C2B) > self.tolerance):
+
 			C0B, C1B, C2B = self.commutator2B(self.Omega1B,self.Omega2B,C1B,C2B)
 			if(k%2 == 0):
 				self.dOmega1B += self.prefactors[k]*C1B
 				self.dOmega2B += self.prefactors[k]*C2B	
 			k += 1
-		'''
+		
 
 
 	def calc_H(self):
@@ -473,7 +479,7 @@ class IMSRG:
 		self.Gamma = self.Gamma0
 
 		# k=1 term (only odd term)
-		C0B, C1B, C2B = self.commutator2B(self.Omega1B,self.Omega2B,self.f0,self.Gamma0)
+		C0B, C1B, C2B = self.commutator2B(self.Omega1B,self.Omega2B,self.f,self.Gamma)
 		self.E += C0B
 		self.f += C1B
 		self.Gamma += C2B
@@ -533,6 +539,11 @@ class IMSRG:
 
 	def magnus(self):
 
+		# open file
+		outfile = open("magnus_flow.dat","w")
+		outfile.write("#   ds = {:-10}\n".format(self.ds))
+		outfile.write('#   {:<14}{:<14}{:<9}{:<15}{:<13}\n\n'.format("s","E","dE","||Gammaod||","||eta2B||"))
+
 		# initial Omega
 		self.Omega1B = np.zeros((self.dim1B,self.dim1B))
 		self.Omega2B = np.zeros((self.dim2B,self.dim2B))
@@ -544,30 +555,14 @@ class IMSRG:
 		self.calc_dH()
 		self.calc_dOmega()
 
-		'''
-		# integrate
-		solver = ode(self.derivative_magnus,jac=None)
-		solver.set_integrator('vode', method='bdf', order=4, nsteps=1000)
-		solver.set_initial_value(y0, 0.0)
-
-		while solver.successful() and solver.t < self.smax:
-
-			print("s = {0:5.3f}  E = {1:8.6f}  dE = {2:8.6f}  ||fod|| = {3:8.6f}  ||Gammaod|| = {4:8.6f}  ||eta1B|| = {5:8.6f}  ||eta2B|| = {6:8.6f}".format(solver.t,self.E,self.dE,self.fod_norm(),self.Gammaod_norm(),linalg.norm(self.eta1B),linalg.norm(self.eta2B)))
-			#print("s = {0:5.3f} Omega2B = {1:5.3f} Gamma = {2:5.3f} eta2B = {3:5.3f}".format(solver.t,linalg.norm(self.Omega2B+transpose(self.Omega2B)),linalg.norm(self.Gamma-transpose(self.Gamma)),linalg.norm(self.eta2B+transpose(self.eta2B))))
-			ys = solver.integrate(self.smax, step=True)
-			solver.integrate(solver.t+self.ds)
-			if(abs(self.dE/self.E) < self.tolerance): break
-			self.calc_H()
-			self.calc_eta_wegner()
-			self.calc_dH()
-		'''
-
 		# forward euler
 		s = 0.0
+		print("="*39)
+		print("  {:<10}{:<9}{:<9}{:<10}".format("s","E","dE/ds","||eta||"))
+		print("="*39)
 		while s < self.smax:
-			print("s = {0:5.3f}  E = {1:8.6f}  dE = {2:8.6f}  ||fod|| = {3:8.6f}  ||Gammaod|| = {4:8.6f}  ||eta1B|| = {5:8.6f}  ||eta2B|| = {6:8.6f}".format(s,self.E,self.dE,self.fod_norm(),self.Gammaod_norm(),linalg.norm(self.eta1B),linalg.norm(self.eta2B)))
-			#print("s = {0:5.3f}  ||Omega2B|| = {1:8.6f}  ||dOmega2B|| = {2:8.6f}  ||Gammaod|| = {3:8.6f}  ||eta2B|| = {4:8.6f}".format(s,linalg.norm(self.Omega2B),linalg.norm(self.dOmega2B),self.Gammaod_norm(),linalg.norm(self.eta2B)))
-			#print("s = {0:5.3f} Omega2B = {1:5.3f} Gamma = {2:5.3f} eta2B = {3:5.3f}".format(s,linalg.norm(self.Omega2B+transpose(self.Omega2B)),linalg.norm(self.Gamma-transpose(self.Gamma)),linalg.norm(self.eta2B+transpose(self.eta2B))))
+			print("{:<10.4f}{:<10.4f}{:<10.4f}{:<10.4f}".format(s,self.E,self.dE,linalg.norm(self.eta2B)))
+			outfile.write('{:<14.7f}{:<14.7f}{:<14.7f}{:<14.7f}{:<14.7f}\n'.format(s,self.E,self.dE,self.Gammaod_norm(),linalg.norm(self.eta2B)))
 			self.calc_eta_wegner()
 			self.calc_dOmega()
 			self.Omega1B += self.ds*self.dOmega1B
@@ -576,6 +571,8 @@ class IMSRG:
 			self.calc_dH()
 			s += self.ds
 
+		outfile.close()
+
 
 
 ########################
@@ -583,10 +580,17 @@ class IMSRG:
 ########################
 
 
-holes = [0,1,2,3]
-particles = [4,5,6,7]
 
-PairingModel = IMSRG(1.0,0.5,10.0,0.000001,holes,particles)
-PairingModel.imsrg()
-#PairingModel.magnus()
 
+def main():
+
+	holes = [0,1,2,3]
+	particles = [4,5,6,7]
+
+	PairingModel = IMSRG(1.0,0.5,10.0,0.01,holes,particles)
+	#PairingModel.imsrg()
+	#import pdb; pdb.set_trace()
+	PairingModel.magnus()
+
+if __name__ == "__main__":
+	main()
