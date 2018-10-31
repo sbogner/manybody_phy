@@ -7,7 +7,7 @@ from sys import argv
 
 class IMSRG:
 
-	def __init__(self, d, g, smax, ds, holes, particles):
+	def __init__(self, d, g, smax, ds, holes, particles, generator):
 
 		self.d = d
 		self.g = g
@@ -17,7 +17,7 @@ class IMSRG:
 		self.parts = particles
 		self.dim1B = len(holes)+len(particles)
 		self.dim2B = self.dim1B**2
-		self.tolerance = 10e-8
+		self.tolerance = 10e-12
 
 		# bases and indices
 		self.bas1B = [i for i in range(self.dim1B)]
@@ -33,8 +33,10 @@ class IMSRG:
 		self.normal_order()
 
 		# magnus expansion
-		self.max = 170
+		self.max = 6
 		self.build_prefactors()
+		self.whichgenerator = generator
+
 
 
 	########################
@@ -199,6 +201,39 @@ class IMSRG:
 
 		return dot(A,B)-dot(B,A)
 
+	def calc_eta(self):
+
+		if self.whichgenerator == "wegner":
+
+			self.calc_eta_wegner()
+
+		if self.whichgenerator == "white":
+
+			self.calc_eta_white()
+
+	def calc_eta_white(self):
+
+		self.eta1B = np.zeros_like(self.f)
+		self.eta2B = np.zeros_like(self.Gamma)
+
+		for i in self.holes:
+			for a in self.parts:
+				self.eta1B[i,a] = self.f[i,a]/(self.f[i,i]-self.f[a,a])
+				self.eta1B[a,i] = -self.eta1B[i,a]
+
+		for i in self.holes:
+			for j in self.holes:
+				for a in self.parts:
+					for b in self.parts:
+						ij = self.idx2B[(i,j)]
+						ab = self.idx2B[(a,b)]
+						edenom = self.f[i,i]+ self.f[j,j] - self.f[a,a] - self.f[b,b]
+						self.eta2B[ij,ab] = self.Gamma[ij,ab]/edenom
+						self.eta2B[ab,ij] = -self.eta2B[ij,ab]
+
+
+
+
 
 	def calc_eta_wegner(self):
 
@@ -248,7 +283,7 @@ class IMSRG:
 		self.Gamma = reshape(y[ptr:ptr+self.dim2B**2],(self.dim2B,self.dim2B))
 
 		# calculate rhs
-		self.calc_eta_wegner()
+		self.calc_eta()
 		self.calc_dH()
 
 		# reshape into linear array
@@ -262,12 +297,12 @@ class IMSRG:
 		# initial values
 		y0 = np.append([self.E0],np.append(reshape(self.f0,-1),reshape(self.Gamma0,-1)))
 		self.E, self.f, self.Gamma = self.E0, self.f0, self.Gamma0
-		self.calc_eta_wegner()
+		self.calc_eta()
 		self.calc_dH()
 
 		# integrate
 		solver = ode(self.derivative,jac=None)
-		solver.set_integrator('vode', method='bdf', order=5, nsteps=1000)
+		solver.set_integrator('vode', method='bdf', order=5, nsteps=10000)
 		solver.set_initial_value(y0, 0.0)
 
 		while solver.successful() and solver.t < self.smax:
@@ -276,7 +311,7 @@ class IMSRG:
 			solver.integrate(solver.t+self.ds)
 			if(abs(self.dE/self.E) < self.tolerance): break
 
-		
+
 
 
 	########################
@@ -296,13 +331,13 @@ class IMSRG:
 		else:
 			return 1.0
 
-	
+
 	def binomial_coeff(self,n,k):
 
 		return self.factorial(n)/(self.factorial(k)*self.factorial(n-k))
 
 
-	def build_prefactors(self):	
+	def build_prefactors(self):
 
 		# store factorial values
 		self.factorials = []
@@ -418,7 +453,7 @@ class IMSRG:
 
 		#### CHECK THESE SGN !!!!!!!!! ####
 
-		
+
 		AB = dot(A2B,dot(self.occ2B_B,B2B))
 		ABT = transpose(AB)
 		C2B += 0.5*(AB+sgn*ABT)
@@ -441,7 +476,7 @@ class IMSRG:
 		AB = asymm_AB
 		C2B += AB
 
-		return C0B, C1B, C2B	
+		return C0B, C1B, C2B
 
 
 	def calc_dOmega(self):
@@ -464,9 +499,9 @@ class IMSRG:
 			C0B, C1B, C2B = self.commutator2B(self.Omega1B,self.Omega2B,C1B,C2B)
 			if(k%2 == 0):
 				self.dOmega1B += self.prefactors[k]*C1B
-				self.dOmega2B += self.prefactors[k]*C2B	
+				self.dOmega2B += self.prefactors[k]*C2B
 			k += 1
-		
+
 
 
 	def calc_H(self):
@@ -492,7 +527,7 @@ class IMSRG:
 			self.f += C1B/self.factorials[k]
 			self.Gamma += C2B/self.factorials[k]
 			k += 1
-		
+
 
 
 	def fod_norm(self):
@@ -528,7 +563,7 @@ class IMSRG:
 		self.Omega2B = reshape(y[ptr:ptr+self.dim2B**2],(self.dim2B,self.dim2B))
 
 		# calculate rhs
-		self.calc_eta_wegner()
+		self.calc_eta()
 		self.calc_dOmega()
 
 		# reshape into linear array
@@ -551,7 +586,7 @@ class IMSRG:
 
 		# initial hamiltonian
 		self.E, self.f, self.Gamma = self.E0, self.f0, self.Gamma0
-		self.calc_eta_wegner()
+		self.calc_eta()
 		self.calc_dH()
 		self.calc_dOmega()
 
@@ -563,7 +598,7 @@ class IMSRG:
 		while s < self.smax:
 			print("{:<10.4f}{:<10.4f}{:<10.4f}{:<10.4f}".format(s,self.E,self.dE,linalg.norm(self.eta2B)))
 			outfile.write('{:<14.7f}{:<14.7f}{:<14.7f}{:<14.7f}{:<14.7f}\n'.format(s,self.E,self.dE,self.Gammaod_norm(),linalg.norm(self.eta2B)))
-			self.calc_eta_wegner()
+			self.calc_eta()
 			self.calc_dOmega()
 			self.Omega1B += self.ds*self.dOmega1B
 			self.Omega2B += self.ds*self.dOmega2B
@@ -587,10 +622,11 @@ def main():
 	holes = [0,1,2,3]
 	particles = [4,5,6,7]
 
-	PairingModel = IMSRG(1.0,0.5,10.0,0.01,holes,particles)
-	#PairingModel.imsrg()
+	PairingModel = IMSRG(1.0,0.5,15.0,0.01,holes,particles, "white")
+	print("which pairingmodel gen", PairingModel.whichgenerator)
+	PairingModel.imsrg()
 	#import pdb; pdb.set_trace()
-	PairingModel.magnus()
+#	PairingModel.magnus()
 
 if __name__ == "__main__":
 	main()
